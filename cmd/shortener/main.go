@@ -9,7 +9,7 @@ import (
 
 var storage map[string]string
 
-func generateUniqueUrlKey() string {
+func generateUniqueURLKey() string {
 	runes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 	urlKey := make([]rune, 8)
 	for i := range urlKey {
@@ -19,7 +19,7 @@ func generateUniqueUrlKey() string {
 	// Проверка на уникальность через рекурсию, пока не создастся уникальный ключ
 	_, ok := storage[string(urlKey)]
 	if ok {
-		return generateUniqueUrlKey()
+		return generateUniqueURLKey()
 	}
 
 	return string(urlKey)
@@ -34,7 +34,7 @@ func URLHandler(response http.ResponseWriter, request *http.Request) {
 			http.Error(response, "Unknown Error", http.StatusBadRequest)
 		}
 
-		urlKey := generateUniqueUrlKey()
+		urlKey := generateUniqueURLKey()
 		storage[urlKey] = string(body)
 
 		response.WriteHeader(http.StatusCreated)
