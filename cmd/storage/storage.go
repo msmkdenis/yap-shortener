@@ -25,7 +25,6 @@ func (repository URLStorage) Add(u string, host string) URL {
 	urlKey := utils.GenerateUniqueURLKey()
 
 	_, ok := repository.storage[urlKey]
-
 	if ok {
 		return repository.Add(u, host)
 	}
@@ -37,15 +36,15 @@ func (repository URLStorage) Add(u string, host string) URL {
 	}
 	repository.storage[urlKey] = url
 	fmt.Println(repository.storage)
+
 	return url
 }
 
-func (repository URLStorage) GetById(key string) (url URL, err error) {
+func (repository URLStorage) GetByID(key string) (url URL, err error) {
 	url, ok := repository.storage[key]
 	if !ok {
 		return url, fmt.Errorf("URL with id = %s not found", key)
 	}
+
 	return url, nil
 }
-
-var Storage map[string]string

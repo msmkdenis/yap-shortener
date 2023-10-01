@@ -11,11 +11,5 @@ func GenerateUniqueURLKey() string {
 		urlKey[i] = runes[rand.Intn(len(runes))]
 	}
 
-	// Проверка на уникальность через рекурсию, пока не создастся уникальный ключ
-	/*	_, ok := storage.Storage[string(urlKey)]
-		if ok {
-			return GenerateUniqueURLKey()
-		}*/
-
 	return string(urlKey)
 }
