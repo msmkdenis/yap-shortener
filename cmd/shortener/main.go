@@ -7,7 +7,7 @@ import (
 )
 
 func main() {
-	storage.URLRepository = storage.NewURLRepository()
+	storage.GlobalRepository = storage.NewMemoryRepository()
 	mux := http.NewServeMux()
 	mux.HandleFunc(`/`, handlers.URLHandler)
 
