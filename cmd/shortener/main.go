@@ -8,6 +8,7 @@ import (
 
 func main() {
 	storage.Storage = make(map[string]string)
+	storage.URLRepository = storage.NewURLRepository()
 	mux := http.NewServeMux()
 	mux.HandleFunc(`/`, handlers.URLHandler)
 

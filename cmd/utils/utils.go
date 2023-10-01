@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"github.com/msmkdenis/yap-shortener/cmd/storage"
 	"math/rand"
 )
 
@@ -13,10 +12,10 @@ func GenerateUniqueURLKey() string {
 	}
 
 	// Проверка на уникальность через рекурсию, пока не создастся уникальный ключ
-	_, ok := storage.Storage[string(urlKey)]
-	if ok {
-		return GenerateUniqueURLKey()
-	}
+	/*	_, ok := storage.Storage[string(urlKey)]
+		if ok {
+			return GenerateUniqueURLKey()
+		}*/
 
 	return string(urlKey)
 }

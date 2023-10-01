@@ -1,9 +1,7 @@
 package handlers
 
 import (
-	"fmt"
 	"github.com/msmkdenis/yap-shortener/cmd/storage"
-	"github.com/msmkdenis/yap-shortener/cmd/utils"
 	"io"
 	"net/http"
 	"strings"
@@ -19,24 +17,33 @@ func URLHandler(response http.ResponseWriter, request *http.Request) {
 			http.Error(response, "Unknown Error", http.StatusBadRequest)
 		}
 
-		urlKey := utils.GenerateUniqueURLKey()
-		storage.Storage[urlKey] = string(body)
+		url := storage.URLRepository.Add(string(body), request.Host)
+
+		/*		urlKey := utils.GenerateUniqueURLKey()
+				storage.Storage[urlKey] = string(body)
+
+				response.WriteHeader(http.StatusCreated)
+				response.Write([]byte("http://" + request.Host + "/" + urlKey))*/
 
 		response.WriteHeader(http.StatusCreated)
-		response.Write([]byte("http://" + request.Host + "/" + urlKey))
+		response.Write([]byte(url.Shortened))
 
 	case http.MethodGet:
 		id := (strings.Split(request.URL.Path, "/"))[1]
-		url, ok := storage.Storage[id]
-		fmt.Println(id)
-		fmt.Println(url)
-		fmt.Println(storage.Storage)
 
-		if !ok {
+		url, err := storage.URLRepository.GetById(id)
+
+		if err != nil {
 			http.Error(response, "Not found", http.StatusBadRequest)
 		}
 
-		response.Header().Set("Location", url)
+		/*		url, ok := storage.Storage[id]
+
+				if !ok {
+					http.Error(response, "Not found", http.StatusBadRequest)
+				}*/
+
+		response.Header().Set("Location", url.Original)
 		response.WriteHeader(http.StatusTemporaryRedirect)
 	}
 }
