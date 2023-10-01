@@ -45,8 +45,8 @@ func URLHandler(response http.ResponseWriter, request *http.Request) {
 		if !ok {
 			http.Error(response, "Not found", http.StatusBadRequest)
 		}
+		response.Header().Set("Location", url)
 		response.WriteHeader(http.StatusTemporaryRedirect)
-		response.Header().Add("Location", url)
 	}
 }
 
