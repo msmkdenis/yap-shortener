@@ -14,12 +14,7 @@ func NewMemoryRepository() Repository {
 }
 
 func (repository URLStorage) Add(u string, host string) URL {
-	urlKey := utils.GenerateUniqueURLKey()
-
-	_, ok := repository.storage[urlKey]
-	if ok {
-		return repository.Add(u, host)
-	}
+	urlKey := utils.GenerateMD5Hash(u)
 
 	var url = URL{
 		ID:        urlKey,
@@ -27,7 +22,6 @@ func (repository URLStorage) Add(u string, host string) URL {
 		Shortened: "http://" + host + "/" + urlKey,
 	}
 	repository.storage[urlKey] = url
-	fmt.Println(repository.storage)
 
 	return url
 }
@@ -37,6 +31,5 @@ func (repository URLStorage) GetByID(key string) (url URL, err error) {
 	if !ok {
 		return url, fmt.Errorf("URL with id = %s not found", key)
 	}
-
 	return url, nil
 }

@@ -1,15 +1,15 @@
 package utils
 
 import (
-	"math/rand"
+	"crypto/md5"
+	"encoding/base64"
+	"encoding/hex"
 )
 
-func GenerateUniqueURLKey() string {
-	runes := []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789")
-	urlKey := make([]rune, 8)
-	for i := range urlKey {
-		urlKey[i] = runes[rand.Intn(len(runes))]
-	}
+func GenerateMD5Hash(text string) string {
+	hash := md5.Sum([]byte(text))
+	fullHash := hex.EncodeToString(hash[:])
+	encoded := base64.StdEncoding.EncodeToString([]byte(fullHash))
 
-	return string(urlKey)
+	return encoded[:7]
 }
