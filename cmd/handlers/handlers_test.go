@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/labstack/echo/v4"
 	"github.com/msmkdenis/yap-shortener/cmd/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -76,6 +77,8 @@ func TestURLHandler(t *testing.T) {
 		},
 	}
 
+	e := echo.New()
+
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			switch test.method {
@@ -83,11 +86,15 @@ func TestURLHandler(t *testing.T) {
 			case http.MethodGet:
 				preRequest := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", strings.NewReader(test.body))
 				preW := httptest.NewRecorder()
-				URLHandler(preW, preRequest)
+				c := e.NewContext(preRequest, preW)
+				//URLHandler(preW, preRequest)
+				PostURL(c)
 
 				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
 				w := httptest.NewRecorder()
-				URLHandler(w, request)
+				b := e.NewContext(request, w)
+				//URLHandler(w, request)
+				GetURL(b)
 				res := w.Result()
 				defer res.Body.Close()
 				assert.Equal(t, test.want.code, res.StatusCode)
@@ -98,7 +105,9 @@ func TestURLHandler(t *testing.T) {
 			case http.MethodPost:
 				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
 				w := httptest.NewRecorder()
-				URLHandler(w, request)
+				l := e.NewContext(request, w)
+				//URLHandler(w, request)
+				PostURL(l)
 				res := w.Result()
 				assert.Equal(t, test.want.code, res.StatusCode)
 				defer res.Body.Close()
