@@ -2,8 +2,7 @@ package storage
 
 import (
 	"fmt"
-
-	"github.com/msmkdenis/yap-shortener/cmd/utils"
+	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
 type URLStorage struct {
@@ -20,7 +19,7 @@ func (repository URLStorage) Add(u string, host string) URL {
 	var url = URL{
 		ID:        urlKey,
 		Original:  u,
-		Shortened: "http://" + host + "/" + urlKey,
+		Shortened: host + "/" + urlKey,
 	}
 	repository.storage[urlKey] = url
 

@@ -2,12 +2,13 @@ package handlers
 
 import (
 	"fmt"
+	"github.com/msmkdenis/yap-shortener/internal/config"
+	"github.com/msmkdenis/yap-shortener/internal/storage"
 	"io"
 	"net/http"
 	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/msmkdenis/yap-shortener/cmd/storage"
 )
 
 func PostURL(c echo.Context) error {
@@ -21,7 +22,7 @@ func PostURL(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty body")
 	}
 
-	url := storage.GlobalRepository.Add(string(body), c.Request().Host)
+	url := storage.GlobalRepository.Add(string(body), config.AppConfig.URLPrefix)
 
 	c.Response().WriteHeader(http.StatusCreated)
 
@@ -35,7 +36,7 @@ func DeleteAll(c echo.Context) error {
 
 func GetAll(c echo.Context) error {
 	urls := storage.GlobalRepository.GetAll()
-	return c.String(http.StatusOK, strings.Join(urls, " "))
+	return c.String(http.StatusOK, strings.Join(urls, ", "))
 }
 
 func GetURL(c echo.Context) error {

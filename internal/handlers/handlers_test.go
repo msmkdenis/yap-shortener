@@ -2,7 +2,7 @@ package handlers
 
 import (
 	"github.com/labstack/echo/v4"
-	"github.com/msmkdenis/yap-shortener/cmd/storage"
+	storage2 "github.com/msmkdenis/yap-shortener/internal/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
@@ -14,7 +14,7 @@ import (
 
 func TestURLHandler(t *testing.T) {
 
-	storage.GlobalRepository = storage.NewMemoryRepository()
+	storage2.GlobalRepository = storage2.NewMemoryRepository()
 
 	type want struct {
 		code     int
