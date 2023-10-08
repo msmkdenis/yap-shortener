@@ -2,6 +2,7 @@ package storage
 
 import (
 	"fmt"
+
 	"github.com/msmkdenis/yap-shortener/cmd/utils"
 )
 
@@ -24,6 +25,18 @@ func (repository URLStorage) Add(u string, host string) URL {
 	repository.storage[urlKey] = url
 
 	return url
+}
+
+func (repository URLStorage) GetAll() []string {
+	values := make([]string, 0, len(repository.storage))
+	for _, v := range repository.storage {
+		values = append(values, v.Original)
+	}
+	return values
+}
+
+func (repository URLStorage) DeleteAll() {
+	clear(repository.storage)
 }
 
 func (repository URLStorage) GetByID(key string) (url URL, err error) {

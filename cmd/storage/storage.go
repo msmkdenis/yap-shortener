@@ -11,4 +11,6 @@ type URL struct {
 type Repository interface {
 	Add(u string, host string) URL
 	GetByID(key string) (url URL, err error)
+	GetAll() []string
+	DeleteAll()
 }
