@@ -2,6 +2,7 @@ package config
 
 import (
 	"flag"
+	"os"
 )
 
 var AppConfig Config
@@ -22,6 +23,14 @@ func InitConfig() Config {
 	flag.Parse()
 
 	var configuration Config
+
+	if envURLServer := os.Getenv("SERVER_ADDRESS"); envURLServer != "" {
+		URLServer = envURLServer
+	}
+
+	if envURLPrefix := os.Getenv("BASE_URL"); envURLPrefix != "" {
+		URLPrefix = envURLPrefix
+	}
 
 	configuration.URLServer = URLServer
 	configuration.URLPrefix = URLPrefix
