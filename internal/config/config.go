@@ -12,8 +12,20 @@ type Config struct {
 	URLPrefix string
 }
 
-func InitConfig() Config {
+func NewConfig() *Config {
 
+	var config = Config{
+		URLServer: "8080",
+		URLPrefix: "http://localhost:8080",
+	}
+
+	config.ParseFlags()
+	config.ParseEnv()
+
+	return &config
+}
+
+func (c *Config) ParseFlags() {
 	var URLServer string
 	flag.StringVar(&URLServer, "a", ":8080", "Enter URLServer as ip_address:port")
 
@@ -22,18 +34,17 @@ func InitConfig() Config {
 
 	flag.Parse()
 
-	var configuration Config
+	c.URLServer = URLServer
+	c.URLPrefix = URLPrefix
+}
+
+func (c *Config) ParseEnv() {
 
 	if envURLServer := os.Getenv("SERVER_ADDRESS"); envURLServer != "" {
-		URLServer = envURLServer
+		c.URLServer = envURLServer
 	}
 
 	if envURLPrefix := os.Getenv("BASE_URL"); envURLPrefix != "" {
-		URLPrefix = envURLPrefix
+		c.URLPrefix = envURLPrefix
 	}
-
-	configuration.URLServer = URLServer
-	configuration.URLPrefix = URLPrefix
-
-	return configuration
 }
