@@ -2,22 +2,22 @@ package memory
 
 import (
 	"fmt"
-	"github.com/msmkdenis/yap-shortener/internal/domain"
+	"github.com/msmkdenis/yap-shortener/internal/model"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
 type MemoryURLRepository struct {
-	storage map[string]domain.URL
+	storage map[string]model.URL
 }
 
 func NewURLRepository() *MemoryURLRepository {
-	return &MemoryURLRepository{storage: make(map[string]domain.URL)}
+	return &MemoryURLRepository{storage: make(map[string]model.URL)}
 }
 
-func (r *MemoryURLRepository) Insert(u string, host string) domain.URL {
+func (r *MemoryURLRepository) Insert(u string, host string) model.URL {
 	urlKey := utils.GenerateMD5Hash(u)
 
-	var url = domain.URL{
+	var url = model.URL{
 		ID:        urlKey,
 		Original:  u,
 		Shortened: host + "/" + urlKey,
@@ -39,7 +39,7 @@ func (r *MemoryURLRepository) DeleteAll() {
 	clear(r.storage)
 }
 
-func (r *MemoryURLRepository) SelectByID(key string) (url domain.URL, err error) {
+func (r *MemoryURLRepository) SelectByID(key string) (url model.URL, err error) {
 	url, ok := r.storage[key]
 	if !ok {
 		return url, fmt.Errorf("URL with id = %s not found", key)

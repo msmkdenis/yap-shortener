@@ -3,8 +3,8 @@ package handlers
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/msmkdenis/yap-shortener/internal/config"
+	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 	"github.com/msmkdenis/yap-shortener/internal/service"
-	"github.com/msmkdenis/yap-shortener/internal/url/repository/memory"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
@@ -118,6 +118,84 @@ func TestURLHandler(t *testing.T) {
 				_, err := io.ReadAll(res.Body)
 				require.NoError(t, err)
 
+			}
+		})
+	}
+}
+
+func TestPostShorten(t *testing.T) {
+	cfg := *config.NewConfig()
+	urlRepository := memory.NewURLRepository()
+	urlService := service.NewURLService(urlRepository)
+	logger, _ := zap.NewProduction()
+
+	e := echo.New()
+
+	h := New(e, urlService, cfg.URLPrefix, logger)
+
+	type want struct {
+		code     int
+		response string
+	}
+
+	tests := []struct {
+		name        string
+		method      string
+		body        string
+		contentType string
+		path        string
+		want        want
+	}{
+		{
+			name:        "positive PostShorten test #1",
+			method:      http.MethodPost,
+			body:        `{"url":"https://practicum.yandex.ru/"}`,
+			contentType: "application/json",
+			path:        "http://localhost:8080/api/shorten",
+			want: want{
+				code:     http.StatusCreated,
+				response: `{"result":"http://localhost:8080/MGRkMTk"}` + "\n",
+			},
+		},
+		{
+			name:        "negative PostShorten test #1",
+			method:      http.MethodPost,
+			body:        `{"url":"https://practicum.yandex.ru/"}`,
+			contentType: "",
+			path:        "http://localhost:8080/api/shorten",
+			want: want{
+				code:     http.StatusUnsupportedMediaType,
+				response: "Content-Type header is not application/json",
+			},
+		},
+		{
+			name:        "negative PostShorten test #2",
+			method:      http.MethodPost,
+			body:        `{}`,
+			contentType: "application/json",
+			path:        "http://localhost:8080/api/shorten",
+			want: want{
+				code:     http.StatusBadRequest,
+				response: "Error: Unable to handle empty body",
+			},
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			switch test.method {
+			case http.MethodPost:
+				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
+				request.Header.Set("Content-Type", test.contentType)
+				w := httptest.NewRecorder()
+				l := e.NewContext(request, w)
+				h.PostShorten(l)
+				res := w.Result()
+				assert.Equal(t, test.want.code, res.StatusCode)
+				defer res.Body.Close()
+				response, err := io.ReadAll(res.Body)
+				assert.Equal(t, test.want.response, string(response))
+				require.NoError(t, err)
 			}
 		})
 	}

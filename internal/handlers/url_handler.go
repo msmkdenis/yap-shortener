@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/msmkdenis/yap-shortener/internal/middleware"
 	"github.com/msmkdenis/yap-shortener/internal/service"
@@ -13,26 +14,81 @@ import (
 )
 
 type URLHandler struct {
-	urlService service.URLService
-	urlPrefix  string
+	urlService       service.URLService
+	urlPrefix        string
+	urlHandlerLogger *zap.Logger
+}
+
+type URLResponseType struct {
+	Result string `json:"result,omitempty"`
+}
+
+type URLRequestType struct {
+	URL string `json:"url,omitempty"`
 }
 
 func New(e *echo.Echo, service service.URLService, urlPrefix string, logger *zap.Logger) *URLHandler {
 	handler := &URLHandler{
-		urlService: service,
-		urlPrefix:  urlPrefix,
+		urlService:       service,
+		urlPrefix:        urlPrefix,
+		urlHandlerLogger: logger,
 	}
 
 	requestLogger := middleware.InitRequestLogger(logger)
 
 	e.Use(requestLogger.RequestLogger())
 
+	e.POST("/api/shorten", handler.PostShorten)
 	e.POST("/", handler.PostURL)
+
 	e.GET("/*", handler.GetURL)
-	e.DELETE("/", handler.DeleteAll)
 	e.GET("/", handler.GetAll)
 
+	e.DELETE("/", handler.DeleteAll)
+
 	return handler
+}
+
+func (h *URLHandler) PostShorten(c echo.Context) error {
+
+	header := c.Request().Header.Get("Content-Type")
+	if header != "application/json" {
+		msg := "Content-Type header is not application/json"
+		h.urlHandlerLogger.Info("StatusUnsupportedMediaType: " + msg)
+		return c.String(http.StatusUnsupportedMediaType, msg)
+	}
+
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		h.urlHandlerLogger.Info("StatusBadRequest: Unknown error, unable to read request")
+		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
+	}
+
+	if len(string(body)) == 0 {
+		h.urlHandlerLogger.Info("StatusBadRequest: Unable to handle empty body")
+		return c.String(http.StatusBadRequest, "Error: Unable to handle empty body")
+	}
+
+	var urlRequest URLRequestType
+	err = json.Unmarshal(body, &urlRequest)
+
+	if len(urlRequest.URL) == 0 {
+		h.urlHandlerLogger.Info("StatusBadRequest: Unable to handle empty body")
+		return c.String(http.StatusBadRequest, "Error: Unable to handle empty body")
+	}
+
+	if err != nil {
+		h.urlHandlerLogger.Info("StatusBadRequest: Unable to unmarshall request")
+		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
+	}
+
+	url := h.urlService.Add(urlRequest.URL, h.urlPrefix)
+
+	response := &URLResponseType{
+		Result: url.Shortened,
+	}
+
+	return c.JSON(http.StatusCreated, response)
 }
 
 func (h *URLHandler) PostURL(c echo.Context) error {
