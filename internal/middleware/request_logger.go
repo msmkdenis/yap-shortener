@@ -8,19 +8,10 @@ import (
 	"time"
 )
 
-type RequestLogger struct {
-	ReqLogger *zap.Logger
-}
-
-func InitRequestLogger(logger *zap.Logger) *RequestLogger {
-	fmt.Println(logger)
-	l := &RequestLogger{
-		ReqLogger: logger,
-	}
-	return l
-}
-
 type (
+	RequestLogger struct {
+		ReqLogger *zap.Logger
+	}
 	// берём структуру для хранения сведений об ответе
 	responseData struct {
 		status int
@@ -33,6 +24,14 @@ type (
 		responseData        *responseData
 	}
 )
+
+func InitRequestLogger(logger *zap.Logger) *RequestLogger {
+	fmt.Println(logger)
+	l := &RequestLogger{
+		ReqLogger: logger,
+	}
+	return l
+}
 
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	// записываем ответ, используя оригинальный http.ResponseWriter

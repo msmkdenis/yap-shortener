@@ -5,8 +5,6 @@ import (
 	"os"
 )
 
-var AppConfig Config
-
 type Config struct {
 	URLServer string
 	URLPrefix string
@@ -19,13 +17,13 @@ func NewConfig() *Config {
 		URLPrefix: "http://localhost:8080",
 	}
 
-	config.ParseFlags()
-	config.ParseEnv()
+	config.parseFlags()
+	config.parseEnv()
 
 	return &config
 }
 
-func (c *Config) ParseFlags() {
+func (c *Config) parseFlags() {
 	var URLServer string
 	flag.StringVar(&URLServer, "a", ":8080", "Enter URLServer as ip_address:port")
 
@@ -38,7 +36,7 @@ func (c *Config) ParseFlags() {
 	c.URLPrefix = URLPrefix
 }
 
-func (c *Config) ParseEnv() {
+func (c *Config) parseEnv() {
 
 	if envURLServer := os.Getenv("SERVER_ADDRESS"); envURLServer != "" {
 		c.URLServer = envURLServer
