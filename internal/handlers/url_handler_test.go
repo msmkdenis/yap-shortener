@@ -15,15 +15,20 @@ import (
 	"testing"
 )
 
+var cfgMock = &config.Config{
+	URLServer: "8080",
+	URLPrefix: "http://localhost:8080",
+}
+
 func TestURLHandler(t *testing.T) {
-	cfg := *config.NewConfig()
+	//cfg := *config.NewConfig()
 	urlRepository := memory.NewURLRepository()
 	urlService := service.NewURLService(urlRepository)
 	logger, _ := zap.NewProduction()
 
 	e := echo.New()
 
-	h := New(e, urlService, cfg.URLPrefix, logger)
+	h := New(e, urlService, cfgMock.URLPrefix, logger)
 
 	type want struct {
 		code     int
@@ -88,6 +93,7 @@ func TestURLHandler(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
+
 			switch test.method {
 
 			case http.MethodGet:
@@ -124,14 +130,14 @@ func TestURLHandler(t *testing.T) {
 }
 
 func TestPostShorten(t *testing.T) {
-	cfg := *config.NewConfig()
+	//cfg := *config.NewConfig()
 	urlRepository := memory.NewURLRepository()
 	urlService := service.NewURLService(urlRepository)
 	logger, _ := zap.NewProduction()
 
 	e := echo.New()
 
-	h := New(e, urlService, cfg.URLPrefix, logger)
+	h := New(e, urlService, cfgMock.URLPrefix, logger)
 
 	type want struct {
 		code     int
