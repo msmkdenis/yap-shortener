@@ -91,7 +91,6 @@ func Compress() echo.MiddlewareFunc {
 				rw := c.Response().Writer
 				cw := newCompressWriter(rw)
 				cw.zw.Reset(rw)
-				c.Response().Writer = cw
 			}
 			return next(c)
 		}
