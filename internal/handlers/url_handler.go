@@ -37,6 +37,8 @@ func New(e *echo.Echo, service service.URLService, urlPrefix string, logger *zap
 	requestLogger := middleware.InitRequestLogger(logger)
 
 	e.Use(requestLogger.RequestLogger())
+	e.Use(middleware.Compress())
+	e.Use(middleware.Decompress())
 
 	e.POST("/api/shorten", handler.PostShorten)
 	e.POST("/", handler.PostURL)
