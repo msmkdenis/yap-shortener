@@ -33,13 +33,13 @@ func (u *URLUseCase) Add(s string, host string) (*model.URL, error) {
 		Shortened: host + "/" + urlKey,
 	}
 
-	savedUrl, err := u.repository.Insert(*url)
+	savedURL, err := u.repository.Insert(*url)
 
 	if err != nil {
 		return nil, err
 	}
 
-	return savedUrl, nil
+	return savedURL, nil
 }
 
 func (u *URLUseCase) GetAll() []string {
