@@ -17,17 +17,7 @@ type FileURLRepository struct {
 func NewFileURLRepository(path string) *FileURLRepository {
 	path = filepath.FromSlash(path)
 
-	baseDir, err := os.Getwd()
-	baseDir = filepath.Clean(filepath.Join(baseDir, ".."))
-	baseDir = filepath.Clean(filepath.Join(baseDir, ".."))
-	if err != nil {
-		log.Println(err)
-	} else {
-		log.Println(baseDir)
-	}
-
-	dir := baseDir + filepath.Dir(path)
-	fmt.Println(dir)
+	dir := filepath.Dir(path)
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.Mkdir(dir, 0755)
@@ -37,7 +27,7 @@ func NewFileURLRepository(path string) *FileURLRepository {
 		}
 	}
 
-	return &FileURLRepository{fileStoragePath: baseDir + path}
+	return &FileURLRepository{fileStoragePath: path}
 }
 
 func (r *FileURLRepository) Insert(url model.URL) (*model.URL, error) {
