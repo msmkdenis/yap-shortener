@@ -18,6 +18,8 @@ func NewFileURLRepository(path string) *FileURLRepository {
 	path = filepath.FromSlash(path)
 
 	baseDir, err := os.Getwd()
+	baseDir = filepath.Clean(filepath.Join(baseDir, ".."))
+	baseDir = filepath.Clean(filepath.Join(baseDir, ".."))
 	if err != nil {
 		log.Println(err)
 	} else {
@@ -25,6 +27,7 @@ func NewFileURLRepository(path string) *FileURLRepository {
 	}
 
 	dir := baseDir + filepath.Dir(path)
+	fmt.Println(dir)
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.Mkdir(dir, 0755)
