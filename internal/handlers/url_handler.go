@@ -84,7 +84,7 @@ func (h *URLHandler) PostShorten(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
 	}
 
-	url := h.urlService.Add(urlRequest.URL, h.urlPrefix)
+	url, _ := h.urlService.Add(urlRequest.URL, h.urlPrefix)
 
 	response := &URLResponseType{
 		Result: url.Shortened,
@@ -104,7 +104,7 @@ func (h *URLHandler) PostURL(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty body")
 	}
 
-	url := h.urlService.Add(string(body), h.urlPrefix)
+	url, _ := h.urlService.Add(string(body), h.urlPrefix)
 
 	c.Response().WriteHeader(http.StatusCreated)
 

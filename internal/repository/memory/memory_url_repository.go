@@ -3,7 +3,6 @@ package memory
 import (
 	"fmt"
 	"github.com/msmkdenis/yap-shortener/internal/model"
-	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
 type MemoryURLRepository struct {
@@ -14,35 +13,31 @@ func NewURLRepository() *MemoryURLRepository {
 	return &MemoryURLRepository{storage: make(map[string]model.URL)}
 }
 
-func (r *MemoryURLRepository) Insert(u string, host string) model.URL {
-	urlKey := utils.GenerateMD5Hash(u)
+func (r *MemoryURLRepository) Insert(u model.URL) (*model.URL, error) {
 
-	var url = model.URL{
-		ID:        urlKey,
-		Original:  u,
-		Shortened: host + "/" + urlKey,
-	}
-	r.storage[urlKey] = url
+	var url = u
 
-	return url
+	r.storage[u.ID] = u
+
+	return &url, nil
 }
 
-func (r *MemoryURLRepository) SelectAll() []string {
+func (r *MemoryURLRepository) SelectAll() ([]string, error) {
 	values := make([]string, 0, len(r.storage))
 	for _, v := range r.storage {
 		values = append(values, v.Original)
 	}
-	return values
+	return values, nil
 }
 
 func (r *MemoryURLRepository) DeleteAll() {
 	clear(r.storage)
 }
 
-func (r *MemoryURLRepository) SelectByID(key string) (url model.URL, err error) {
+func (r *MemoryURLRepository) SelectByID(key string) (*model.URL, error) {
 	url, ok := r.storage[key]
 	if !ok {
-		return url, fmt.Errorf("URL with id = %s not found", key)
+		return &url, fmt.Errorf("URL with id = %s not found", key)
 	}
-	return url, nil
+	return &url, nil
 }
