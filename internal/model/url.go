@@ -9,6 +9,6 @@ type URL struct {
 type URLRepository interface {
 	Insert(u URL) (*URL, error)
 	SelectByID(key string) (*URL, error)
-	SelectAll() ([]string, error)
+	SelectAll() ([]URL, error)
 	DeleteAll()
 }

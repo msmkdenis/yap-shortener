@@ -14,8 +14,9 @@ type Config struct {
 func NewConfig() *Config {
 
 	var config = Config{
-		URLServer: "8080",
-		URLPrefix: "http://localhost:8080",
+		URLServer:       "8080",
+		URLPrefix:       "http://localhost:8080",
+		FileStoragePath: "/tmp/short-url-db.json",
 	}
 
 	config.parseFlags()

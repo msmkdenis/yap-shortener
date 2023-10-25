@@ -11,11 +11,10 @@ import (
 
 func URLShortenerRun() {
 	cfg := *config.NewConfig()
-	//urlRepository := memory.NewURLRepository()
-	fileRepository := file.NewFileURLRepository(cfg.FileStoragePath)
-	urlService := service.NewURLService(fileRepository)
-
 	logger, _ := zap.NewProduction()
+	//memoryRepository := memory.NewURLRepository(logger)
+	fileRepository := file.NewFileURLRepository(cfg.FileStoragePath, logger)
+	urlService := service.NewURLService(fileRepository, logger)
 
 	e := echo.New()
 

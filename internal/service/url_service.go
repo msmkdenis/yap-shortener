@@ -4,22 +4,25 @@ import (
 	"fmt"
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
+	"go.uber.org/zap"
 )
 
 type URLService interface {
 	Add(s string, host string) (*model.URL, error)
 	GetAll() []string
 	DeleteAll()
-	GetByyID(key string) (*model.URL, error)
+	GetByyID(key string) (string, error)
 }
 
 type URLUseCase struct {
 	repository model.URLRepository
+	logger     *zap.Logger
 }
 
-func NewURLService(repository model.URLRepository) *URLUseCase {
+func NewURLService(repository model.URLRepository, logger *zap.Logger) *URLUseCase {
 	return &URLUseCase{
 		repository: repository,
+		logger:     logger,
 	}
 }
 
@@ -44,18 +47,22 @@ func (u *URLUseCase) Add(s string, host string) (*model.URL, error) {
 
 func (u *URLUseCase) GetAll() []string {
 	urls, _ := u.repository.SelectAll()
-	return urls
+	var originalURLs []string
+	for _, url := range urls {
+		originalURLs = append(originalURLs, url.Original)
+	}
+	return originalURLs
 }
 
 func (u *URLUseCase) DeleteAll() {
 	u.repository.DeleteAll()
 }
 
-func (u *URLUseCase) GetByyID(key string) (*model.URL, error) {
+func (u *URLUseCase) GetByyID(key string) (string, error) {
 	var url = &model.URL{}
 	url, err := u.repository.SelectByID(key)
 	if err != nil {
-		return url, fmt.Errorf("URL with id = %s not found", key)
+		return "", fmt.Errorf("URL with id = %s not found", key)
 	}
-	return url, nil
+	return url.Original, nil
 }

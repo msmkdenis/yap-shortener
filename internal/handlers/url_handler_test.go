@@ -3,7 +3,7 @@ package handlers
 import (
 	"github.com/labstack/echo/v4"
 	"github.com/msmkdenis/yap-shortener/internal/config"
-	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
+	"github.com/msmkdenis/yap-shortener/internal/repository/file"
 	"github.com/msmkdenis/yap-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -18,14 +18,13 @@ import (
 var cfgMock = &config.Config{
 	URLServer:       "8080",
 	URLPrefix:       "http://localhost:8080",
-	FileStoragePath: "/tmp/short-url-db.json",
+	FileStoragePath: "/tmp/short-url-db-test.json",
 }
 
 func TestURLHandler(t *testing.T) {
-	//cfg := *config.NewConfig()
-	urlRepository := memory.NewURLRepository()
-	urlService := service.NewURLService(urlRepository)
 	logger, _ := zap.NewProduction()
+	urlRepository := file.NewFileURLRepository(cfgMock.FileStoragePath, logger)
+	urlService := service.NewURLService(urlRepository, logger)
 
 	e := echo.New()
 
@@ -124,17 +123,16 @@ func TestURLHandler(t *testing.T) {
 				defer res.Body.Close()
 				_, err := io.ReadAll(res.Body)
 				require.NoError(t, err)
-
 			}
 		})
 	}
+	t.Cleanup(urlService.DeleteAll)
 }
 
 func TestPostShorten(t *testing.T) {
-	//cfg := *config.NewConfig()
-	urlRepository := memory.NewURLRepository()
-	urlService := service.NewURLService(urlRepository)
 	logger, _ := zap.NewProduction()
+	urlRepository := file.NewFileURLRepository(cfgMock.FileStoragePath, logger)
+	urlService := service.NewURLService(urlRepository, logger)
 
 	e := echo.New()
 
@@ -206,4 +204,5 @@ func TestPostShorten(t *testing.T) {
 			}
 		})
 	}
+	t.Cleanup(urlService.DeleteAll)
 }
