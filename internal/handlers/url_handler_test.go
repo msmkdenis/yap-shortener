@@ -100,12 +100,12 @@ func TestURLHandler(t *testing.T) {
 				preRequest := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", strings.NewReader(test.body))
 				preW := httptest.NewRecorder()
 				c := e.NewContext(preRequest, preW)
-				h.PostURL(c)
+				_ = h.PostURL(c)
 
 				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
 				w := httptest.NewRecorder()
 				b := e.NewContext(request, w)
-				h.GetURL(b)
+				_ = h.GetURL(b)
 				res := w.Result()
 				defer res.Body.Close()
 				assert.Equal(t, test.want.code, res.StatusCode)
@@ -117,7 +117,7 @@ func TestURLHandler(t *testing.T) {
 				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
 				w := httptest.NewRecorder()
 				l := e.NewContext(request, w)
-				h.PostURL(l)
+				_ = h.PostURL(l)
 				res := w.Result()
 				assert.Equal(t, test.want.code, res.StatusCode)
 				defer res.Body.Close()
@@ -181,7 +181,7 @@ func TestPostShorten(t *testing.T) {
 			path:        "http://localhost:8080/api/shorten",
 			want: want{
 				code:     http.StatusBadRequest,
-				response: "Error: Unable to handle empty body",
+				response: "Error: Unable to handle empty request",
 			},
 		},
 	}
@@ -194,7 +194,7 @@ func TestPostShorten(t *testing.T) {
 				request.Header.Set("Content-Type", test.contentType)
 				w := httptest.NewRecorder()
 				l := e.NewContext(request, w)
-				h.PostShorten(l)
+				_ = h.PostShorten(l)
 				res := w.Result()
 				assert.Equal(t, test.want.code, res.StatusCode)
 				defer res.Body.Close()

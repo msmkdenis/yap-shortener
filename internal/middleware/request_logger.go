@@ -57,10 +57,7 @@ func (r *RequestLogger) RequestLogger() echo.MiddlewareFunc {
 
 			duration := time.Since(start)
 
-			responseData := &responseData{
-				status: 0,
-				size:   0,
-			}
+			responseData := &responseData{}
 
 			lw := loggingResponseWriter{
 				ResponseWriter: c.Response().Writer, // встраиваем оригинальный http.ResponseWriter

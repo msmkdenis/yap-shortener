@@ -2,15 +2,24 @@ package file
 
 import (
 	"encoding/json"
-	"github.com/msmkdenis/yap-shortener/internal/model"
-	"go.uber.org/zap"
+	"fmt"
 	"io"
-	"log"
 	"os"
 	"path/filepath"
+	"sync"
+
+	"github.com/msmkdenis/yap-shortener/internal/apperrors"
+	"github.com/msmkdenis/yap-shortener/internal/model"
+	"go.uber.org/zap"
+)
+
+const (
+	openFileFlag = os.O_RDWR | os.O_CREATE | os.O_APPEND
+	perm         = 0755
 )
 
 type FileURLRepository struct {
+	mu              sync.RWMutex
 	fileStoragePath string
 	logger          *zap.Logger
 }
@@ -21,9 +30,9 @@ func NewFileURLRepository(path string, logger *zap.Logger) *FileURLRepository {
 	dir := filepath.Dir(path)
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
-		err = os.Mkdir(dir, 0755)
+		err = os.Mkdir(dir, perm)
 		if err != nil {
-			log.Fatalf("Error: %s", err)
+			logger.Fatal(fmt.Sprintf("Error while creating directory: %s", dir), zap.Error(err))
 			return nil
 		}
 	}
@@ -31,29 +40,28 @@ func NewFileURLRepository(path string, logger *zap.Logger) *FileURLRepository {
 	return &FileURLRepository{
 		fileStoragePath: path,
 		logger:          logger,
+		mu:              sync.RWMutex{},
 	}
 }
 
 func (r *FileURLRepository) Insert(url model.URL) (*model.URL, error) {
-	if savedURL, err := r.SelectByID(url.ID); err == nil {
-		return savedURL, nil
-	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
 
-	r.logger.Info("Opening file")
-	file, err := os.OpenFile(r.fileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+	r.logger.Info(fmt.Sprintf("Opening file: %s", r.fileStoragePath))
+	file, err := os.OpenFile(r.fileStoragePath, openFileFlag, perm)
 	if err != nil {
-		log.Fatalf("Ошибка при открытии %s", err)
+		r.logger.Fatal(fmt.Sprintf("Unable to open file: %s", r.fileStoragePath), zap.Error(err))
 		return nil, err
 	}
-
 	defer file.Close()
 
 	encoder := json.NewEncoder(file)
-
 	err = encoder.Encode(url)
 
+
 	if err != nil {
-		r.logger.Info("Could not encode url to file")
+		r.logger.Error("Could not encode url to file", zap.Error(err))
 		return nil, err
 	}
 
@@ -61,23 +69,27 @@ func (r *FileURLRepository) Insert(url model.URL) (*model.URL, error) {
 }
 
 func (r *FileURLRepository) SelectByID(key string) (*model.URL, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
 
-	file, err := os.OpenFile(r.fileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+	file, err := os.OpenFile(r.fileStoragePath, openFileFlag, perm)
 	if err != nil {
-		log.Fatalf("Ошибка при открытии %s", err)
+		r.logger.Fatal("Unable to open file", zap.Error(err))
 		return nil, err
 	}
 
 	decoder := json.NewDecoder(file)
-
 	defer file.Close()
 
 	var url model.URL
-
 	for {
 		err := decoder.Decode(&url)
 		if err == io.EOF {
-			r.logger.Info("Could not find url in file")
+			r.logger.Debug(fmt.Sprintf("url with id %s not found", key), zap.Error(err))
+			return nil, apperrors.ErrorUrlNotFound
+		}
+		if err != nil {
+			r.logger.Error("Could not decode url from file", zap.Error(err))
 			return nil, err
 		}
 		if url.ID == key {
@@ -85,37 +97,46 @@ func (r *FileURLRepository) SelectByID(key string) (*model.URL, error) {
 		}
 	}
 
+
 	return &url, nil
 }
 
 func (r *FileURLRepository) SelectAll() ([]model.URL, error) {
-	file, err := os.OpenFile(r.fileStoragePath, os.O_RDWR|os.O_CREATE|os.O_APPEND, 0755)
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	file, err := os.OpenFile(r.fileStoragePath, openFileFlag, perm)
 	if err != nil {
-		log.Fatalf("Ошибка при открытии %s", err)
+		r.logger.Fatal("Unable to open file", zap.Error(err))
 		return nil, err
 	}
-
 	defer file.Close()
 
 	decoder := json.NewDecoder(file)
-
-	var answer []model.URL
+	urls := make([]model.URL, 0)
 
 	for {
 		var url model.URL
 		err := decoder.Decode(&url)
 		if err == io.EOF {
-			r.logger.Info("Reached end of file while decoding")
+			r.logger.Debug("Reached end of file while decoding", zap.Error(err))
 			break
 		}
-		answer = append(answer, url)
+		if err != nil {
+			r.logger.Error("Could not decode url from file", zap.Error(err))
+			return nil, err
+		}
+		urls = append(urls, url)
 	}
 
-	return answer, nil
+	return urls, nil
 }
 
 func (r *FileURLRepository) DeleteAll() {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
 	if err := os.Truncate(r.fileStoragePath, 0); err != nil {
-		log.Printf("Failed to truncate: %v", err)
+		r.logger.Error(fmt.Sprintf("Failed to truncate file: %s", r.fileStoragePath), zap.Error(err))
 	}
 }

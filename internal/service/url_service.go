@@ -2,6 +2,8 @@ package service
 
 import (
 	"fmt"
+
+	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 	"go.uber.org/zap"
@@ -9,7 +11,7 @@ import (
 
 type URLService interface {
 	Add(s string, host string) (*model.URL, error)
-	GetAll() []string
+	GetAll() ([]string, error)
 	DeleteAll()
 	GetByyID(key string) (string, error)
 }
@@ -26,32 +28,33 @@ func NewURLService(repository model.URLRepository, logger *zap.Logger) *URLUseCa
 	}
 }
 
-func (u *URLUseCase) Add(s string, host string) (*model.URL, error) {
-
+func (u *URLUseCase) Add(s, host string) (*model.URL, error) {
 	urlKey := utils.GenerateMD5Hash(s)
-
-	var url = &model.URL{
+	url := &model.URL{
 		ID:        urlKey,
 		Original:  s,
 		Shortened: host + "/" + urlKey,
 	}
 
-	savedURL, err := u.repository.Insert(*url)
+	if savedURL, err := u.repository.SelectByID(url.ID); err == nil {
+		return savedURL, nil
+	}
 
+	return u.repository.Insert(*url)
+}
+
+func (u *URLUseCase) GetAll() ([]string, error) {
+	urls, err := u.repository.SelectAll()
 	if err != nil {
 		return nil, err
 	}
 
-	return savedURL, nil
-}
-
-func (u *URLUseCase) GetAll() []string {
-	urls, _ := u.repository.SelectAll()
-	var originalURLs []string
+	originalURLs := []string{}
 	for _, url := range urls {
 		originalURLs = append(originalURLs, url.Original)
 	}
-	return originalURLs
+
+	return originalURLs, nil
 }
 
 func (u *URLUseCase) DeleteAll() {
@@ -59,10 +62,11 @@ func (u *URLUseCase) DeleteAll() {
 }
 
 func (u *URLUseCase) GetByyID(key string) (string, error) {
-	var url = &model.URL{}
 	url, err := u.repository.SelectByID(key)
 	if err != nil {
-		return "", fmt.Errorf("URL with id = %s not found", key)
+		u.logger.Debug(fmt.Sprintf("url with id %s not found", key), zap.Error(err))
+		return "", apperrors.ErrorUrlNotFound
 	}
+	
 	return url.Original, nil
 }
