@@ -59,7 +59,6 @@ func (r *FileURLRepository) Insert(url model.URL) (*model.URL, error) {
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(url)
 
-
 	if err != nil {
 		r.logger.Error("Could not encode url to file", zap.Error(err))
 		return nil, err
@@ -86,7 +85,7 @@ func (r *FileURLRepository) SelectByID(key string) (*model.URL, error) {
 		err := decoder.Decode(&url)
 		if err == io.EOF {
 			r.logger.Debug(fmt.Sprintf("url with id %s not found", key), zap.Error(err))
-			return nil, apperrors.ErrorUrlNotFound
+			return nil, apperrors.ErrorURLNotFound
 		}
 		if err != nil {
 			r.logger.Error("Could not decode url from file", zap.Error(err))
@@ -96,7 +95,6 @@ func (r *FileURLRepository) SelectByID(key string) (*model.URL, error) {
 			break
 		}
 	}
-
 
 	return &url, nil
 }

@@ -65,8 +65,8 @@ func (u *URLUseCase) GetByyID(key string) (string, error) {
 	url, err := u.repository.SelectByID(key)
 	if err != nil {
 		u.logger.Debug(fmt.Sprintf("url with id %s not found", key), zap.Error(err))
-		return "", apperrors.ErrorUrlNotFound
+		return "", apperrors.ErrorURLNotFound
 	}
-	
+
 	return url.Original, nil
 }

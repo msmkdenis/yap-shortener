@@ -137,14 +137,14 @@ func (h *URLHandler) GetURL(c echo.Context) error {
 	var status int
 
 	switch {
-	case errors.Is(err, apperrors.ErrorUrlNotFound):
+	case errors.Is(err, apperrors.ErrorURLNotFound):
 		status = http.StatusBadRequest
 		message = fmt.Sprintf("URL with id %s not found", id)
 
 	case err != nil:
 		status = http.StatusInternalServerError
 		message = fmt.Sprintf("Unknown error: %s", err)
-		
+
 	default:
 		c.Response().Header().Set("Location", originalURL)
 		status = http.StatusTemporaryRedirect
