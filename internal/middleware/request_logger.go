@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"fmt"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 	"net/http"
@@ -26,7 +25,6 @@ type (
 )
 
 func InitRequestLogger(logger *zap.Logger) *RequestLogger {
-	fmt.Println(logger)
 	l := &RequestLogger{
 		ReqLogger: logger,
 	}

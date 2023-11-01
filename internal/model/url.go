@@ -10,5 +10,5 @@ type URLRepository interface {
 	Insert(u URL) (*URL, error)
 	SelectByID(key string) (*URL, error)
 	SelectAll() ([]URL, error)
-	DeleteAll()
+	DeleteAll() error
 }

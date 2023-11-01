@@ -3,7 +3,6 @@ package service
 import (
 	"fmt"
 
-	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 	"go.uber.org/zap"
@@ -12,7 +11,7 @@ import (
 type URLService interface {
 	Add(s string, host string) (*model.URL, error)
 	GetAll() ([]string, error)
-	DeleteAll()
+	DeleteAll() error
 	GetByyID(key string) (string, error)
 }
 
@@ -36,17 +35,23 @@ func (u *URLUseCase) Add(s, host string) (*model.URL, error) {
 		Shortened: host + "/" + urlKey,
 	}
 
-	if savedURL, err := u.repository.SelectByID(url.ID); err == nil {
-		return savedURL, nil
+	existingURL, err := u.repository.SelectByID(url.ID)
+	if err == nil {
+		return existingURL, nil
 	}
 
-	return u.repository.Insert(*url)
+	savedURL, err := u.repository.Insert(*url)
+	if err != nil {
+		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
+	}
+
+	return savedURL, nil
 }
 
 func (u *URLUseCase) GetAll() ([]string, error) {
 	urls, err := u.repository.SelectAll()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
 	}
 
 	originalURLs := []string{}
@@ -57,15 +62,17 @@ func (u *URLUseCase) GetAll() ([]string, error) {
 	return originalURLs, nil
 }
 
-func (u *URLUseCase) DeleteAll() {
-	u.repository.DeleteAll()
+func (u *URLUseCase) DeleteAll() error {
+	if err := u.repository.DeleteAll(); err != nil { 
+		return fmt.Errorf("caller: %s %w", utils.Caller(), err) 
+	} 
+	return u.repository.DeleteAll()
 }
 
 func (u *URLUseCase) GetByyID(key string) (string, error) {
 	url, err := u.repository.SelectByID(key)
 	if err != nil {
-		u.logger.Debug(fmt.Sprintf("url with id %s not found", key), zap.Error(err))
-		return "", apperrors.ErrorURLNotFound
+		return "", fmt.Errorf("caller: %s %w", utils.Caller(), err)
 	}
 
 	return url.Original, nil

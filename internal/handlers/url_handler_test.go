@@ -126,7 +126,7 @@ func TestURLHandler(t *testing.T) {
 			}
 		})
 	}
-	t.Cleanup(urlService.DeleteAll)
+	_ = urlService.DeleteAll
 }
 
 func TestPostShorten(t *testing.T) {
@@ -204,5 +204,5 @@ func TestPostShorten(t *testing.T) {
 			}
 		})
 	}
-	t.Cleanup(urlService.DeleteAll)
+	_ = urlService.DeleteAll
 }
