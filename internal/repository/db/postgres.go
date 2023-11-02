@@ -34,7 +34,10 @@ func NewPostgresPool(connection string, logger *zap.Logger) *PostgresPool {
 
 	data, _ := os.ReadFile(file.Name())
 
-	dbPool.Exec(context.Background(), strings.TrimSpace(string(data)))
+	_, err = dbPool.Exec(context.Background(), strings.TrimSpace(string(data)))
+	if err != nil {
+		logger.Fatal("Unable to execute schema.sql file", zap.Error(err))
+	}
 
 	return &PostgresPool{
 		db:     dbPool,
