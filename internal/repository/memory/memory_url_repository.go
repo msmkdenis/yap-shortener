@@ -2,6 +2,9 @@ package memory
 
 import (
 	"fmt"
+	"github.com/labstack/echo/v4"
+	"github.com/msmkdenis/yap-shortener/internal/apperrors"
+	"github.com/msmkdenis/yap-shortener/internal/utils"
 	"sync"
 
 	"github.com/msmkdenis/yap-shortener/internal/model"
@@ -22,7 +25,7 @@ func NewURLRepository(logger *zap.Logger) *MemoryURLRepository {
 	}
 }
 
-func (r *MemoryURLRepository) Insert(u model.URL) (*model.URL, error) {
+func (r *MemoryURLRepository) Insert(c echo.Context, u model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -32,7 +35,19 @@ func (r *MemoryURLRepository) Insert(u model.URL) (*model.URL, error) {
 	return &url, nil
 }
 
-func (r *MemoryURLRepository) SelectAll() ([]model.URL, error) {
+func (r *MemoryURLRepository) SelectByID(c echo.Context, key string) (*model.URL, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	url, ok := r.storage[key]
+	if !ok {
+		return &url, fmt.Errorf("URL with id = %s not found", key)
+	}
+
+	return &url, nil
+}
+
+func (r *MemoryURLRepository) SelectAll(c echo.Context) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -44,21 +59,18 @@ func (r *MemoryURLRepository) SelectAll() ([]model.URL, error) {
 	return values, nil
 }
 
-func (r *MemoryURLRepository) DeleteAll() {
+func (r *MemoryURLRepository) DeleteAll(c echo.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	clear(r.storage)
+	return nil
 }
 
-func (r *MemoryURLRepository) SelectByID(key string) (*model.URL, error) {
-	r.mu.RLock()
-	defer r.mu.RUnlock()
-	
-	url, ok := r.storage[key]
-	if !ok {
-		return &url, fmt.Errorf("URL with id = %s not found", key)
+func (r *MemoryURLRepository) Ping(c echo.Context) error {
+	if r.storage == nil {
+		return apperrors.NewValueError("storage is not initialized", utils.Caller(), apperrors.ErrorURLNotFound)
 	}
 
-	return &url, nil
+	return nil
 }

@@ -42,6 +42,7 @@ func New(e *echo.Echo, service service.URLService, urlPrefix string, logger *zap
 
 	e.GET("/*", handler.GetURL)
 	e.GET("/", handler.GetAll)
+	e.GET("/ping", handler.GetPing)
 
 	e.DELETE("/", handler.DeleteAll)
 
@@ -74,7 +75,7 @@ func (h *URLHandler) PostShorten(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	url, err := h.urlService.Add(urlRequest.URL, h.urlPrefix)
+	url, err := h.urlService.Add(c, urlRequest.URL, h.urlPrefix)
 	if err != nil {
 		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
@@ -99,7 +100,7 @@ func (h *URLHandler) PostURL(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	url, err := h.urlService.Add(string(body), h.urlPrefix)
+	url, err := h.urlService.Add(c, string(body), h.urlPrefix)
 	if err != nil {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
@@ -110,7 +111,7 @@ func (h *URLHandler) PostURL(c echo.Context) error {
 }
 
 func (h *URLHandler) DeleteAll(c echo.Context) error {
-	if err := h.urlService.DeleteAll(); err != nil {
+	if err := h.urlService.DeleteAll(c); err != nil {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
@@ -118,7 +119,7 @@ func (h *URLHandler) DeleteAll(c echo.Context) error {
 }
 
 func (h *URLHandler) GetAll(c echo.Context) error {
-	urls, err := h.urlService.GetAll()
+	urls, err := h.urlService.GetAll(c)
 	if err != nil {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
@@ -135,7 +136,7 @@ func (h *URLHandler) GetURL(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	originalURL, err := h.urlService.GetByyID(id)
+	originalURL, err := h.urlService.GetByyID(c, id)
 
 	var message string
 	var status int
@@ -165,4 +166,14 @@ func (h *URLHandler) checkRequest(s string) error {
 		return apperrors.NewValueError("Unable to handle empty request", utils.Caller(), apperrors.ErrorEmptyRequest)
 	}
 	return nil
+}
+
+func (h *URLHandler) GetPing(c echo.Context) error {
+	status := http.StatusOK
+	err := h.urlService.Ping(c)
+	if err != nil {
+		status = http.StatusInternalServerError
+	}
+
+	return c.NoContent(status)
 }

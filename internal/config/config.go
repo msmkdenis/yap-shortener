@@ -9,6 +9,7 @@ type Config struct {
 	URLServer       string
 	URLPrefix       string
 	FileStoragePath string
+	DataBaseDSN     string
 }
 
 func NewConfig() *Config {
@@ -35,11 +36,15 @@ func (c *Config) parseFlags() {
 	var FileStoragePath string
 	flag.StringVar(&FileStoragePath, "f", "/tmp/short-url-db.json", "Enter path for file Or use FILE_STORAGE_PATH env")
 
+	var DataBaseDSN string
+	flag.StringVar(&DataBaseDSN, "d", "", "Enter url to connect database as host=host port=port user=postgres password=postgres dbname=dbname sslmode=disable Or use DATABASE_DSN env")
+
 	flag.Parse()
 
 	c.URLServer = URLServer
 	c.URLPrefix = URLPrefix
 	c.FileStoragePath = FileStoragePath
+	c.DataBaseDSN = DataBaseDSN
 }
 
 func (c *Config) parseEnv() {
@@ -54,5 +59,9 @@ func (c *Config) parseEnv() {
 
 	if envFileStoragePath := os.Getenv("FILE_STORAGE_PATH"); envFileStoragePath != "" {
 		c.FileStoragePath = envFileStoragePath
+	}
+
+	if envDataBaseDSN := os.Getenv("DATABASE_DSN"); envDataBaseDSN != "" {
+		c.DataBaseDSN = envDataBaseDSN
 	}
 }

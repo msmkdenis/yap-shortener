@@ -3,6 +3,7 @@ package file
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/labstack/echo/v4"
 	"io"
 	"os"
 	"path/filepath"
@@ -15,7 +16,7 @@ import (
 )
 
 const (
-	perm         = 0755
+	perm = 0755
 )
 
 type FileURLRepository struct {
@@ -53,7 +54,7 @@ func NewFileURLRepository(path string, logger *zap.Logger) *FileURLRepository {
 	}
 }
 
-func (r *FileURLRepository) Insert(url model.URL) (*model.URL, error) {
+func (r *FileURLRepository) Insert(c echo.Context, url model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -73,7 +74,7 @@ func (r *FileURLRepository) Insert(url model.URL) (*model.URL, error) {
 	return &url, nil
 }
 
-func (r *FileURLRepository) SelectByID(key string) (*model.URL, error) {
+func (r *FileURLRepository) SelectByID(c echo.Context, key string) (*model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -102,7 +103,7 @@ func (r *FileURLRepository) SelectByID(key string) (*model.URL, error) {
 	return &url, nil
 }
 
-func (r *FileURLRepository) SelectAll() ([]model.URL, error) {
+func (r *FileURLRepository) SelectAll(c echo.Context) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -131,12 +132,21 @@ func (r *FileURLRepository) SelectAll() ([]model.URL, error) {
 	return urls, nil
 }
 
-func (r *FileURLRepository) DeleteAll() error {
+func (r *FileURLRepository) DeleteAll(c echo.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if err := os.Truncate(r.fileStorage.Name(), 0); err != nil {
 		return apperrors.NewValueError(fmt.Sprintf("Failed to truncate file: %s", r.fileStorage.Name()), utils.Caller(), err)
 	}
+	return nil
+}
+
+func (r *FileURLRepository) Ping(c echo.Context) error {
+	file, err := os.OpenFile(r.fileStorage.Name(), os.O_RDONLY, perm)
+	if err != nil {
+		return apperrors.NewValueError("unable to open file", utils.Caller(), err)
+	}
+	defer file.Close()
 	return nil
 }
