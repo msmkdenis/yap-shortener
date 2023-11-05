@@ -38,7 +38,7 @@ func (c *Config) parseFlags() {
 	flag.StringVar(&FileStoragePath, "f", "/tmp/short-url-db.json", "Enter path for file Or use FILE_STORAGE_PATH env")
 
 	var DataBaseDSN string
-	flag.StringVar(&DataBaseDSN, "d", "", "Enter url to connect database as host=host port=port user=postgres password=postgres dbname=dbname sslmode=disable Or use DATABASE_DSN env")
+	flag.StringVar(&DataBaseDSN, "d", "postgres://postgres:postgres@postgres:5432/praktikum?sslmode=disable", "Enter url to connect database as host=host port=port user=postgres password=postgres dbname=dbname sslmode=disable Or use DATABASE_DSN env")
 
 	flag.Parse()
 
