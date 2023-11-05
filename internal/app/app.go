@@ -4,6 +4,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/handlers"
+
 	"github.com/msmkdenis/yap-shortener/internal/repository/db"
 	//"github.com/msmkdenis/yap-shortener/internal/repository/file"
 	"github.com/msmkdenis/yap-shortener/internal/service"
@@ -20,7 +21,9 @@ func URLShortenerRun() {
 	migrations := db.NewMigrations(cfg.DataBaseDSN, logger)
 	migrations.MigrateUp()
 	dbRepository := db.NewPostgresURLRepository(postgresPool, logger)
+	//urlService := service.NewURLService(fileRepository, logger)
 	urlService := service.NewURLService(dbRepository, logger)
+	
 
 	e := echo.New()
 

@@ -3,9 +3,9 @@ package model
 import "github.com/labstack/echo/v4"
 
 type URL struct {
-	ID        string
-	Original  string
-	Shortened string
+	ID        string `db:"id"`
+	Original  string `db:"iriganl_url"`
+	Shortened string `db:"short_url"`
 }
 
 type URLRepository interface {
