@@ -32,6 +32,7 @@ func NewMigrations(connection string, logger *zap.Logger) *Migrations {
 	if err != nil {
 		logger.Fatal("Unable to create iofs driver", zap.Error(err))
 	}
+	logger.Info(fmt.Sprintf("Connection to database %s", dbURL))
 
 	migrations, err := migrate.NewWithSourceInstance("iofs", driver, dbURL)
 	if err != nil {
