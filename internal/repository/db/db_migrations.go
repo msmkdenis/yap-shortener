@@ -25,6 +25,7 @@ func NewMigrations(connection string, logger *zap.Logger) *Migrations {
 	if err != nil {
 		logger.Fatal("Unable to parse connection string", zap.Error(err))
 	}
+	logger.Info(fmt.Sprintf("Connection %s", connection))
 
 	dbURL := dbURL(dbConfig, sslMode(connection))
 
