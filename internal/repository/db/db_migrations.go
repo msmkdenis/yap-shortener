@@ -68,6 +68,12 @@ func dbURL(config *pgxpool.Config, sslMode string) string{
 	dbURL.WriteString(config.ConnConfig.Database)
 	dbURL.WriteString("?sslmode=")
 	dbURL.WriteString(sslMode)
+	
+	fmt.Println(string(config.ConnConfig.User))
+	fmt.Println(string(config.ConnConfig.Password))
+	fmt.Println(string(config.ConnConfig.Host))
+	fmt.Println((config.ConnConfig.Port))
+	fmt.Println(string(config.ConnConfig.Database))
 
 	return dbURL.String()
 }
