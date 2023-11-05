@@ -17,6 +17,8 @@ func URLShortenerRun() {
 	logger.Info(cfg.FileStoragePath)
 	//fileRepository := file.NewFileURLRepository(cfg.FileStoragePath, logger)
 	postgresPool := db.NewPostgresPool(cfg.DataBaseDSN, logger)
+	migrations := db.NewMigrations(cfg.DataBaseDSN, logger)
+	migrations.MigrateUp()
 	dbRepository := db.NewPostgresURLRepository(postgresPool, logger)
 	urlService := service.NewURLService(dbRepository, logger)
 
