@@ -1,6 +1,8 @@
 package app
 
 import (
+	"fmt"
+
 	"github.com/labstack/echo/v4"
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/handlers"
@@ -15,10 +17,10 @@ func URLShortenerRun() {
 	cfg := *config.NewConfig()
 	logger, _ := zap.NewProduction()
 	//memoryRepository := memory.NewURLRepository(logger)
-	logger.Info(cfg.FileStoragePath)
 	//fileRepository := file.NewFileURLRepository(cfg.FileStoragePath, logger)
 	postgresPool := db.NewPostgresPool(cfg.DataBaseDSN, logger)
 	migrations := db.NewMigrations(cfg.DataBaseDSN, logger)
+	logger.Info(fmt.Sprintf("Connecting to database with connection %s", cfg.DataBaseDSN))
 	migrations.MigrateUp()
 	dbRepository := db.NewPostgresURLRepository(postgresPool, logger)
 	//urlService := service.NewURLService(fileRepository, logger)
