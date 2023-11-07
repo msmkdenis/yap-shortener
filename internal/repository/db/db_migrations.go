@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
-	"github.com/golang-migrate/migrate/v4/source/iofs"
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
+	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"go.uber.org/zap"
 )
@@ -46,14 +46,14 @@ func NewMigrations(connection string, logger *zap.Logger) *Migrations {
 	}
 }
 
-func (m *Migrations) MigrateUp() {	
+func (m *Migrations) MigrateUp() {
 	err := m.migrations.Up()
 	if err != nil && err.Error() != "no change" {
 		m.logger.Fatal("Unable to up migrations", zap.Error(err))
 	}
 }
 
-func dbURL(config *pgxpool.Config, sslMode string) string{
+func dbURL(config *pgxpool.Config, sslMode string) string {
 	var dbURL strings.Builder
 
 	dbURL.WriteString("postgres://")
@@ -67,23 +67,24 @@ func dbURL(config *pgxpool.Config, sslMode string) string{
 	dbURL.WriteString("/")
 	dbURL.WriteString(config.ConnConfig.Database)
 	dbURL.WriteString("?sslmode=")
-	dbURL.WriteString(sslMode)
-	
+	if config.ConnConfig.TLSConfig == nil {
+		dbURL.WriteString("disable")
+	} else {
+		dbURL.WriteString(sslMode)
+	}
+
 	return dbURL.String()
 }
 
 func sslMode(connection string) string {
 	con := strings.Split(connection, " ")
-	sslMode := "disable"
+	sslMode := ""
 	for _, v := range con {
 		pair := strings.Split(v, "=")
 		if pair[0] == "sslmode" {
-			if pair[1] == "disable" {
-				sslMode = pair[1]
-			}
+			sslMode = pair[1]
 		}
 	}
-	return sslMode	
+
+	return sslMode
 }
-
-
