@@ -99,17 +99,14 @@ func (h *URLHandler) PostURL(c echo.Context) error {
 		h.logger.Error("StatusBadRequest: unable to handle empty request", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
-	fmt.Println("++++++++++++++++++++++++++++++++++")
+
 	url, err := h.urlService.Add(c, string(body), h.urlPrefix)
 	if err != nil {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
-	fmt.Println("==================================")
-	fmt.Println(url.ID)
 
 	c.Response().WriteHeader(http.StatusCreated)
-	//h.logger.Info("StatusCreated: Created", zap.String("url", url.Shortened))
 	return c.String(http.StatusCreated, url.Shortened)
 }
 
@@ -118,6 +115,7 @@ func (h *URLHandler) DeleteAll(c echo.Context) error {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
+
 	return c.String(http.StatusOK, "All data deleted")
 }
 
@@ -168,6 +166,7 @@ func (h *URLHandler) checkRequest(s string) error {
 	if len(s) == 0 {
 		return apperrors.NewValueError("Unable to handle empty request", utils.Caller(), apperrors.ErrorEmptyRequest)
 	}
+	
 	return nil
 }
 

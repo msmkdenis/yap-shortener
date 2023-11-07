@@ -74,7 +74,7 @@ func dbURL(config *pgxpool.Config, sslMode string) string{
 
 func sslMode(connection string) string {
 	con := strings.Split(connection, " ")
-	sslMode := "disable"
+	sslMode := ""
 	for _, v := range con {
 		pair := strings.Split(v, "=")
 		if pair[0] == "sslmode" {

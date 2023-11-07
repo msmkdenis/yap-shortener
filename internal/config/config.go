@@ -55,8 +55,6 @@ func (c *Config) parseFlags() {
 	c.URLPrefix = URLPrefix
 	c.FileStoragePath = FileStoragePath
 	c.DataBaseDSN = DataBaseDSN
-
-	fmt.Println(c.DataBaseDSN)
 }
 
 func (c *Config) parseEnv() {
