@@ -5,6 +5,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
@@ -90,7 +91,12 @@ func (u *URLUseCase) Ping(ctx echo.Context) error {
 
 func (u *URLUseCase) AddBatch(ctx echo.Context, urls []dto.URLBatchRequestType, host string) ([]model.URL, error) {
 	var urlsToSave []model.URL
+	var keys = make(map[string]string)
 	for _, v := range urls {
+		if _, ok := keys[v.CorrelationID]; ok {
+			return nil, apperrors.NewValueError("duplicated keys in batch", utils.Caller(), apperrors.ErrorDuplicatedKeys)
+		}
+		keys[v.CorrelationID] = v.CorrelationID
 		shortUrl := utils.GenerateMD5Hash(v.OriginalURL)
 		url := model.URL{
 			ID:        v.CorrelationID,

@@ -159,10 +159,10 @@ func (r *PostgresURLRepository) InsertBatch(ctx echo.Context, urls []model.URL) 
 	}
 	defer tx.Rollback(ctx.Request().Context())
 
-	rows := [][]interface{}{}
-	for i := 0; i < len(urls); i++ {
-		row := []interface{}{urls[i].ID, urls[i].Original, urls[i].Shortened}
-		rows = append(rows, row)
+	rows := make([][]interface{}, len(urls))
+	for i, url := range urls {
+		row := []interface{}{url.ID, url.Original, url.Shortened}
+		rows[i] = row
 	}
 
 	_, err = tx.Exec(ctx.Request().Context(),
@@ -176,7 +176,9 @@ func (r *PostgresURLRepository) InsertBatch(ctx echo.Context, urls []model.URL) 
 	count, err := tx.CopyFrom(
 		ctx.Request().Context(),
 		pgx.Identifier{"pg_temp", "_temp_upsert_urls"},
-		[]string{"id", "original_url", "short_url"}, pgx.CopyFromRows(rows))
+		[]string{"id", "original_url", "short_url"}, 
+		pgx.CopyFromRows(rows),
+	)
 	if err != nil {
 		return nil, apperrors.NewValueError("copy from failed", utils.Caller(), err)
 	}
@@ -184,14 +186,26 @@ func (r *PostgresURLRepository) InsertBatch(ctx echo.Context, urls []model.URL) 
 		return nil, apperrors.NewValueError("not all rows were inserted", utils.Caller(), err)
 	}
 
-	_, err = tx.Exec(ctx.Request().Context(),
+	quaryRows, err := tx.Query(ctx.Request().Context(),
 		`
 		insert into url_shortener.url (id, original_url, short_url) 
 		select id, original_url, short_url from pg_temp._temp_upsert_urls 
-		on conflict (id) do update set original_url = excluded.original_url, short_url = excluded.short_url 
+		on conflict (id) do update set original_url = excluded.original_url, short_url = excluded.short_url
+		returning id, original_url, short_url 
 		`)
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to upsert", utils.Caller(), err)
+		return nil, apperrors.NewValueError("unable to upsert batch", utils.Caller(), err)
+	}
+	defer quaryRows.Close()
+
+	var savedUrls []model.URL
+	for quaryRows.Next() {
+		var url model.URL
+		err = quaryRows.Scan(&url.ID, &url.Original, &url.Shortened)
+		if err != nil {
+			return nil, apperrors.NewValueError("unable to scan values", utils.Caller(), err)
+		}
+		savedUrls = append(savedUrls, url)
 	}
 
 	err = tx.Commit(ctx.Request().Context())
@@ -199,5 +213,5 @@ func (r *PostgresURLRepository) InsertBatch(ctx echo.Context, urls []model.URL) 
 		return nil, apperrors.NewValueError("commit failed", utils.Caller(), err)
 	}
 
-	return urls, nil
+	return savedUrls, nil
 }
