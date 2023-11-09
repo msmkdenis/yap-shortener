@@ -150,3 +150,7 @@ func (r *FileURLRepository) Ping(c echo.Context) error {
 	defer file.Close()
 	return nil
 }
+
+func (r *FileURLRepository) InsertBatch(c echo.Context, urls []model.URL) ([]model.URL, error) {
+	return nil, nil
+}

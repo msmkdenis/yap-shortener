@@ -1,7 +1,6 @@
 package memory
 
 import (
-	"fmt"
 	"github.com/labstack/echo/v4"
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
@@ -41,7 +40,7 @@ func (r *MemoryURLRepository) SelectByID(c echo.Context, key string) (*model.URL
 
 	url, ok := r.storage[key]
 	if !ok {
-		return &url, fmt.Errorf("URL with id = %s not found", key)
+		return &url, apperrors.ErrorURLNotFound
 	}
 
 	return &url, nil
@@ -73,4 +72,8 @@ func (r *MemoryURLRepository) Ping(c echo.Context) error {
 	}
 
 	return nil
+}
+
+func (r *MemoryURLRepository) InsertBatch(c echo.Context, urls []model.URL) ([]model.URL, error) {
+	return nil, nil
 }

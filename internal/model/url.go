@@ -10,6 +10,7 @@ type URL struct {
 
 type URLRepository interface {
 	Insert(c echo.Context, u URL) (*URL, error)
+	InsertBatch(c echo.Context, urls []URL) ([]URL, error)
 	SelectByID(c echo.Context, key string) (*URL, error)
 	SelectAll(c echo.Context) ([]URL, error)
 	DeleteAll(c echo.Context) error

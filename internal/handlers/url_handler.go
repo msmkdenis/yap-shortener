@@ -39,6 +39,7 @@ func New(e *echo.Echo, service service.URLService, urlPrefix string, logger *zap
 
 	e.POST("/api/shorten", handler.PostShorten)
 	e.POST("/", handler.PostURL)
+	e.POST("/api/shorten/batch", handler.PostBatch)
 
 	e.GET("/*", handler.GetURL)
 	e.GET("/", handler.GetAll)
@@ -48,6 +49,51 @@ func New(e *echo.Echo, service service.URLService, urlPrefix string, logger *zap
 
 	return handler
 }
+
+func (h *URLHandler) PostBatch(c echo.Context) error {
+	header := c.Request().Header.Get("Content-Type")
+	if header != "application/json" {
+		msg := "Content-Type header is not application/json"
+		h.logger.Error("StatusUnsupportedMediaType: " + msg)
+		return c.String(http.StatusUnsupportedMediaType, msg)
+	}
+
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusBadRequest, fmt.Sprintf("Error: Unknown error, unable to read request %s", err))
+	}
+
+	var urlBatchRequest []dto.URLBatchRequestType
+	err = json.Unmarshal([]byte(body), &urlBatchRequest)
+	if err != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
+	}
+
+	if err := h.checkRequest(string(body)); err != nil {
+		h.logger.Error("StatusBadRequest: unable to handle empty request", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
+	}
+
+	savedURLs, err := h.urlService.AddBatch(c, urlBatchRequest, h.urlPrefix)
+	if err != nil {
+		h.logger.Error("StatusInternalServerError: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
+	}
+
+	var urlBatch []dto.URLBatchResponseType
+	for _, url := range savedURLs {
+		responseURL := dto.URLBatchResponseType{
+			CorrelationID: url.ID,
+			OriginalURL:   url.Original,
+		}
+		urlBatch = append(urlBatch, responseURL)
+	}
+
+	return c.JSON(http.StatusCreated, urlBatch)
+}
+
 
 func (h *URLHandler) PostShorten(c echo.Context) error {
 	header := c.Request().Header.Get("Content-Type")

@@ -1,18 +1,23 @@
 package handlers
 
 import (
-	"github.com/labstack/echo/v4"
-	"github.com/msmkdenis/yap-shortener/internal/config"
-	"github.com/msmkdenis/yap-shortener/internal/repository/file"
-	"github.com/msmkdenis/yap-shortener/internal/service"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/golang/mock/gomock"
+	"github.com/labstack/echo/v4"
+
+	"github.com/msmkdenis/yap-shortener/internal/apperrors"
+	"github.com/msmkdenis/yap-shortener/internal/config"
+	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
+	"github.com/msmkdenis/yap-shortener/internal/repository/file"
+	"github.com/msmkdenis/yap-shortener/internal/service"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 var cfgMock = &config.Config{
@@ -205,4 +210,111 @@ func TestPostShorten(t *testing.T) {
 		})
 	}
 	_ = urlService.DeleteAll
+}
+
+func TestGetURL(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	s := mock.NewMockURLService(ctrl)
+
+	message := "https://practicum.yandex.ru/"
+
+	s.EXPECT().GetByyID(gomock.Any(), gomock.Any()).AnyTimes().Return(message, nil)
+
+
+	logger, _ := zap.NewProduction()
+	e := echo.New()
+	h := New(e, s, cfgMock.URLPrefix, logger)
+	defer e.Close()
+
+	testCases := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+		expectedLocation string
+	}{
+		{
+			name:         "BadRequest - ID is empty",
+			method:       http.MethodGet,
+			expectedCode: http.StatusBadRequest,
+			path:         "http://localhost:8080/",
+			expectedBody: "Error: Unable to handle empty request",
+			expectedLocation: "",
+		},
+		{
+			name:         "TemporaryRedirect - ID is not empty",
+			method:       http.MethodGet,
+			expectedCode: http.StatusTemporaryRedirect,
+			path:         "http://localhost:8080/MGRkMTk",
+			expectedBody: "",
+			expectedLocation: "https://practicum.yandex.ru/",
+		},
+	}
+
+	for _, test := range testCases {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
+			w := httptest.NewRecorder()
+			l := e.NewContext(request, w)
+			_ = h.GetURL(l)
+			res := w.Result()
+			assert.Equal(t, test.expectedCode, res.StatusCode)
+			assert.Equal(t, test.expectedLocation, res.Header.Get("Location"))
+			response, err := io.ReadAll(res.Body)
+			res.Body.Close()
+			assert.Equal(t, test.expectedBody, string(response))
+			require.NoError(t, err)
+		})
+	}
+
+}
+
+func TestGetURLError(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	s := mock.NewMockURLService(ctrl)
+
+	logger, _ := zap.NewProduction()
+	e := echo.New()
+	h := New(e, s, cfgMock.URLPrefix, logger)
+	defer e.Close()
+
+	s.EXPECT().GetByyID(gomock.Any(), gomock.Any()).Times(1).Return("", apperrors.ErrorURLNotFound)
+
+	testCaseWithError := []struct {
+		name         string 
+		method       string
+		body         string 
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "BadRequest - url not found",
+			method:       http.MethodGet,
+			expectedCode: http.StatusBadRequest,
+			path:         "http://localhost:8080/MGRkMTk",
+			expectedBody: "URL with id MGRkMTk not found",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
+			w := httptest.NewRecorder()
+			l := e.NewContext(request, w)
+			_ = h.GetURL(l)
+			res := w.Result()
+			assert.Equal(t, test.expectedCode, res.StatusCode)
+			response, err := io.ReadAll(res.Body)
+			res.Body.Close()
+			assert.Equal(t, test.expectedBody, string(response))
+			require.NoError(t, err)
+		})
+	}
 }
