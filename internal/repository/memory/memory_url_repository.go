@@ -24,7 +24,7 @@ func NewURLRepository(logger *zap.Logger) *MemoryURLRepository {
 	}
 }
 
-func (r *MemoryURLRepository) InsertOrUpdate(c echo.Context, u model.URL) (*model.URL, error) {
+func (r *MemoryURLRepository) Insert(c echo.Context, u model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

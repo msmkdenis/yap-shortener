@@ -14,7 +14,7 @@ type URL struct {
 }
 
 type URLRepository interface {
-	InsertOrUpdate(c echo.Context, u URL) (*URL, error)
+	Insert(c echo.Context, u URL) (*URL, error)
 	InsertAllOrUpdate(c echo.Context, urls []URL) ([]URL, error)
 	SelectByID(c echo.Context, key string) (*URL, error)
 	SelectAll(c echo.Context) ([]URL, error)

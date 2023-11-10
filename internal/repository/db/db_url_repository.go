@@ -30,7 +30,7 @@ func (r *PostgresURLRepository) Ping(ctx echo.Context) error {
 	return err
 }
 
-func (r *PostgresURLRepository) InsertOrUpdate(ctx echo.Context, url model.URL) (*model.URL, error) {
+func (r *PostgresURLRepository) Insert(ctx echo.Context, url model.URL) (*model.URL, error) {
 	tx, err := r.PostgresPool.db.Begin(ctx.Request().Context())
 	if err != nil {
 		return nil, apperrors.NewValueError("unable to start transaction", utils.Caller(), err)
@@ -42,8 +42,6 @@ func (r *PostgresURLRepository) InsertOrUpdate(ctx echo.Context, url model.URL) 
 		`
 		insert into url_shortener.url (id, original_url, short_url) 
 		values ($1, $2, $3) 
-		on conflict (id) do update 
-		set original_url = $2, short_url = $3 
 		returning id, original_url, short_url
 		`,
 		url.ID, url.Original, url.Shortened).Scan(&savedURL.ID, &savedURL.Original, &savedURL.Shortened)

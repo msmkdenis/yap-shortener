@@ -55,7 +55,7 @@ func NewFileURLRepository(path string, logger *zap.Logger) *FileURLRepository {
 	}
 }
 
-func (r *FileURLRepository) InsertOrUpdate(c echo.Context, url model.URL) (*model.URL, error) {
+func (r *FileURLRepository) Insert(c echo.Context, url model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -66,45 +66,13 @@ func (r *FileURLRepository) InsertOrUpdate(c echo.Context, url model.URL) (*mode
 	}
 	defer file.Close()
 
-	decoder := json.NewDecoder(file)
-	var urlsToSave []model.URL
-	var insertedOrUpdatedURL model.URL
-	var checkExist bool
-	for {
-		var existingURL model.URL
-		err := decoder.Decode(&existingURL)
-		if err == io.EOF {
-			if !checkExist {
-				urlsToSave = append(urlsToSave, url)
-				insertedOrUpdatedURL = url
-			}
-			break
-		}
-		if err != nil {
-			return nil, apperrors.NewValueError("unable to decode from file", utils.Caller(), err)
-		}
-		if existingURL.ID == url.ID {
-			existingURL.Original = url.Original
-			existingURL.Shortened = url.Shortened
-			insertedOrUpdatedURL = existingURL
-			checkExist = true
-		}
-		urlsToSave = append(urlsToSave, existingURL)
-	}
-
-	if err := os.Truncate(r.fileStorage.Name(), 0); err != nil {
-		return nil, apperrors.NewValueError(fmt.Sprintf("Failed to truncate file: %s", r.fileStorage.Name()), utils.Caller(), err)
-	}
-
 	encoder := json.NewEncoder(file)
-	for _, url := range urlsToSave {
-		err = encoder.Encode(url)
-		if err != nil {
-			return nil, apperrors.NewValueError("unable to encode to file", utils.Caller(), err)
-		}
+	err = encoder.Encode(url)
+	if err != nil {
+		return nil, apperrors.NewValueError("unable to encode to file", utils.Caller(), err)
 	}
 
-	return &insertedOrUpdatedURL, nil
+	return &url, nil
 }
 
 func (r *FileURLRepository) SelectByID(c echo.Context, key string) (*model.URL, error) {
@@ -216,9 +184,9 @@ func (r *FileURLRepository) InsertAllOrUpdate(c echo.Context, urls []model.URL) 
 		if v, ok := urlMap[existingURL.ID]; ok { //If url exists in map, remove it from map and add it to urlsToSave
 			existingURL.Original = v.Original
 			existingURL.Shortened = v.Shortened
-			delete(urlMap, existingURL.ID) 
+			delete(urlMap, existingURL.ID)
 		}
-		
+
 		urlsToSave = append(urlsToSave, existingURL)
 	}
 

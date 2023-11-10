@@ -47,7 +47,7 @@ func (u *URLUseCase) Add(ctx echo.Context, s, host string) (*model.URL, error) {
 		return existingURL, apperrors.ErrorURLAlreadyExists
 	}
 
-	savedURL, err := u.repository.InsertOrUpdate(ctx, *url)
+	savedURL, err := u.repository.Insert(ctx, *url)
 	if err != nil {
 		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
 	}
