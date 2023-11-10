@@ -9,6 +9,7 @@ var (
 	ErrorURLNotFound  error = errors.New("url not found")
 	ErrorEmptyRequest error = errors.New("unable to handle empty request")
 	ErrorDuplicatedKeys error = errors.New("duplicated keys in batch")
+	ErrorURLAlreadyExists error = errors.New("url already exists")
 )
 
 type ValueError struct {	

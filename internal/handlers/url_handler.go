@@ -112,13 +112,18 @@ func (h *URLHandler) PostShorten(c echo.Context) error {
 	}
 
 	url, err := h.urlService.Add(c, urlRequest.URL, h.urlPrefix)
-	if err != nil {
+	if err != nil && !errors.Is(err, apperrors.ErrorURLAlreadyExists) {
 		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
 
 	response := &dto.URLResponseType{
 		Result: url.Shortened,
+	}
+
+	if errors.Is(err, apperrors.ErrorURLAlreadyExists) {
+		h.logger.Error("StatusConflict: url already exists", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.JSON(http.StatusConflict, response)
 	}
 
 	return c.JSON(http.StatusCreated, response)
@@ -137,9 +142,14 @@ func (h *URLHandler) PostURL(c echo.Context) error {
 	}
 
 	url, err := h.urlService.Add(c, string(body), h.urlPrefix)
-	if err != nil {
+	if err != nil && !errors.Is(err, apperrors.ErrorURLAlreadyExists) {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
+	}
+
+	if errors.Is(err, apperrors.ErrorURLAlreadyExists) {
+		h.logger.Error("StatusConflict: url already exists", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.JSON(http.StatusConflict, url.Shortened)
 	}
 
 	c.Response().WriteHeader(http.StatusCreated)
