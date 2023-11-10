@@ -82,16 +82,7 @@ func (h *URLHandler) PostBatch(c echo.Context) error {
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
 
-	var urlBatch []dto.URLBatchResponseType
-	for _, url := range savedURLs {
-		responseURL := dto.URLBatchResponseType{
-			CorrelationID: url.ID,
-			OriginalURL:   url.Original,
-		}
-		urlBatch = append(urlBatch, responseURL)
-	}
-
-	return c.JSON(http.StatusCreated, urlBatch)
+	return c.JSON(http.StatusCreated, savedURLs)
 }
 
 func (h *URLHandler) PostShorten(c echo.Context) error {

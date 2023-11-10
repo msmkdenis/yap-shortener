@@ -52,10 +52,10 @@ func (mr *MockURLServiceMockRecorder) Add(arg0, arg1, arg2 interface{}) *gomock.
 }
 
 // AddAll mocks base method.
-func (m *MockURLService) AddAll(arg0 echo.Context, arg1 []dto.URLBatchRequestType, arg2 string) ([]model.URL, error) {
+func (m *MockURLService) AddAll(arg0 echo.Context, arg1 []dto.URLBatchRequestType, arg2 string) ([]dto.URLBatchResponseType, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddAll", arg0, arg1, arg2)
-	ret0, _ := ret[0].([]model.URL)
+	ret0, _ := ret[0].([]dto.URLBatchResponseType)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }

@@ -14,7 +14,7 @@ import (
 
 type URLService interface {
 	Add(ctx echo.Context, s string, host string) (*model.URL, error)
-	AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, host string) ([]model.URL, error)
+	AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, host string) ([]dto.URLBatchResponseType, error)
 	GetAll(ctx echo.Context) ([]string, error)
 	DeleteAll(ctx echo.Context) error
 	GetByyID(ctx echo.Context, key string) (string, error)
@@ -40,11 +40,6 @@ func (u *URLUseCase) Add(ctx echo.Context, s, host string) (*model.URL, error) {
 		Original:  s,
 		Shortened: host + "/" + urlKey,
 	}
-
-	// existingURL, err := u.repository.SelectByID(ctx, url.ID)
-	// if err == nil {
-	// 	return existingURL, nil
-	// }
 
 	savedURL, err := u.repository.InsertOrUpdate(ctx, *url)
 	if err != nil {
@@ -89,7 +84,7 @@ func (u *URLUseCase) Ping(ctx echo.Context) error {
 	return err
 }
 
-func (u *URLUseCase) AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, host string) ([]model.URL, error) {
+func (u *URLUseCase) AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, host string) ([]dto.URLBatchResponseType, error) {
 	var urlsToSave []model.URL
 	var keys = make(map[string]string)
 	for _, v := range urls {
@@ -111,5 +106,14 @@ func (u *URLUseCase) AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, ho
 		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
 	}
 
-	return savedURLs, nil
+	var response []dto.URLBatchResponseType
+	for _, url := range savedURLs {
+		responseURL := dto.URLBatchResponseType{
+			CorrelationID: url.ID,
+			ShortenedURL:  url.Shortened,
+		}
+		response = append(response, responseURL)
+	}
+
+	return response, nil
 }
