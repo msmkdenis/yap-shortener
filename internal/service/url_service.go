@@ -97,11 +97,11 @@ func (u *URLUseCase) AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, ho
 			return nil, apperrors.NewValueError("duplicated keys in batch", utils.Caller(), apperrors.ErrorDuplicatedKeys)
 		}
 		keys[v.CorrelationID] = v.CorrelationID
-		shortUrl := utils.GenerateMD5Hash(v.OriginalURL)
+		shortURL := utils.GenerateMD5Hash(v.OriginalURL)
 		url := model.URL{
 			ID:        v.CorrelationID,
 			Original:  v.OriginalURL,
-			Shortened: host + "/" + shortUrl,
+			Shortened: host + "/" + shortURL,
 		}
 		urlsToSave = append(urlsToSave, url)
 	}
