@@ -194,9 +194,6 @@ func (h *URLHandler) GetURL(c echo.Context) error {
 		status = http.StatusTemporaryRedirect
 		message = ""
 	}
-	fmt.Println("++++++++++++++++++++++++++++")
-	fmt.Println(c.Response().Header().Get("Location"))
-	fmt.Println(status)
 
 	return c.String(status, message)
 }

@@ -94,7 +94,7 @@ func (u *URLUseCase) AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, ho
 		keys[v.CorrelationID] = v.CorrelationID
 		shortURL := utils.GenerateMD5Hash(v.OriginalURL)
 		url := model.URL{
-			ID:        shortURL,
+			ID:        v.CorrelationID,
 			Original:  v.OriginalURL,
 			Shortened: host + "/" + shortURL,
 		}
