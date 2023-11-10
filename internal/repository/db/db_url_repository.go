@@ -70,11 +70,11 @@ func (r *PostgresURLRepository) SelectByID(ctx echo.Context, key string) (*model
 	var url model.URL
 	err = tx.QueryRow(ctx.Request().Context(),
 		`
-		select id, original_url, short_url
+		select id, original_url, short_url, correlation_id
 		from url_shortener.url
 		where id = $1
 		`,
-		key).Scan(&url.ID, &url.Original, &url.Shortened)
+		key).Scan(&url.ID, &url.Original, &url.Shortened, &url.CorrelationID)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -102,7 +102,7 @@ func (r *PostgresURLRepository) SelectAll(ctx echo.Context) ([]model.URL, error)
 
 	queryRows, err := tx.Query(ctx.Request().Context(),
 		`
-		select id, original_url, short_url
+		select id, original_url, short_url, correlation_id
 		from url_shortener.url
 		`)
 	if err != nil {
@@ -156,7 +156,7 @@ func (r *PostgresURLRepository) InsertAllOrUpdate(ctx echo.Context, urls []model
 
 	rows := make([][]interface{}, len(urls))
 	for i, url := range urls {
-		row := []interface{}{url.ID, url.Original, url.Shortened}
+		row := []interface{}{url.ID, url.Original, url.Shortened, url.CorrelationID}
 		rows[i] = row
 	}
 
@@ -171,7 +171,7 @@ func (r *PostgresURLRepository) InsertAllOrUpdate(ctx echo.Context, urls []model
 	count, err := tx.CopyFrom(
 		ctx.Request().Context(),
 		pgx.Identifier{"pg_temp", "_temp_upsert_urls"},
-		[]string{"id", "original_url", "short_url"},
+		[]string{"id", "original_url", "short_url", "correlation_id"},
 		pgx.CopyFromRows(rows),
 	)
 	if err != nil {
@@ -183,10 +183,10 @@ func (r *PostgresURLRepository) InsertAllOrUpdate(ctx echo.Context, urls []model
 
 	queryRows, err := tx.Query(ctx.Request().Context(),
 		`
-		insert into url_shortener.url (id, original_url, short_url) 
-		select id, original_url, short_url from pg_temp._temp_upsert_urls 
-		on conflict (id) do update set original_url = excluded.original_url, short_url = excluded.short_url
-		returning id, original_url, short_url 
+		insert into url_shortener.url (id, original_url, short_url, correlation_id) 
+		select id, original_url, short_url, correlation_id from pg_temp._temp_upsert_urls 
+		on conflict (id) do update set original_url = excluded.original_url, short_url = excluded.short_url, correlation_id = excluded.correlation_id
+		returning id, original_url, short_url, correlation_id 
 		`)
 	if err != nil {
 		return nil, apperrors.NewValueError("unable to upsert batch", utils.Caller(), err)

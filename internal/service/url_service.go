@@ -1,6 +1,7 @@
 package service
 
 import (
+	"database/sql"
 	"fmt"
 
 	"github.com/labstack/echo/v4"
@@ -94,22 +95,27 @@ func (u *URLUseCase) AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, ho
 		keys[v.CorrelationID] = v.CorrelationID
 		shortURL := utils.GenerateMD5Hash(v.OriginalURL)
 		url := model.URL{
-			ID:        v.CorrelationID,
-			Original:  v.OriginalURL,
-			Shortened: host + "/" + shortURL,
+			ID:            shortURL,
+			Original:      v.OriginalURL,
+			Shortened:     host + "/" + shortURL,
+			CorrelationID: sql.NullString{String: v.CorrelationID, Valid: true},
 		}
 		urlsToSave = append(urlsToSave, url)
 	}
+
+	fmt.Println(urlsToSave)
 
 	savedURLs, err := u.repository.InsertAllOrUpdate(ctx, urlsToSave)
 	if err != nil {
 		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
 	}
 
+	fmt.Println(savedURLs)
+
 	var response []dto.URLBatchResponseType
 	for _, url := range savedURLs {
 		responseURL := dto.URLBatchResponseType{
-			CorrelationID: url.ID,
+			CorrelationID: url.CorrelationID.String,
 			ShortenedURL:  url.Shortened,
 		}
 		response = append(response, responseURL)

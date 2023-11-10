@@ -1,11 +1,16 @@
 package model
 
-import "github.com/labstack/echo/v4"
+import (
+	"database/sql"
+
+	"github.com/labstack/echo/v4"
+)
 
 type URL struct {
-	ID        string `db:"id"`
-	Original  string `db:"original_url"`
-	Shortened string `db:"short_url"`
+	ID            string         `db:"id"`
+	Original      string         `db:"original_url"`
+	Shortened     string         `db:"short_url"`
+	CorrelationID sql.NullString `db:"correlation_id"`
 }
 
 type URLRepository interface {
