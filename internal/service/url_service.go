@@ -44,8 +44,8 @@ func (u *URLUseCase) Add(ctx echo.Context, s, host string) (*model.URL, error) {
 
 	existingURL, err := u.repository.SelectByID(ctx, urlKey)
 	if err == nil {
-		return existingURL, apperrors.ErrorURLAlreadyExists	
-	} 
+		return existingURL, apperrors.ErrorURLAlreadyExists
+	}
 
 	savedURL, err := u.repository.InsertOrUpdate(ctx, *url)
 	if err != nil {
@@ -73,7 +73,7 @@ func (u *URLUseCase) DeleteAll(ctx echo.Context) error {
 	if err := u.repository.DeleteAll(ctx); err != nil {
 		return fmt.Errorf("caller: %s %w", utils.Caller(), err)
 	}
-	return u.repository.DeleteAll(ctx)
+	return nil
 }
 
 func (u *URLUseCase) GetByyID(ctx echo.Context, key string) (string, error) {

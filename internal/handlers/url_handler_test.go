@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -13,7 +14,6 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
-	"github.com/msmkdenis/yap-shortener/internal/repository/file"
 	"github.com/msmkdenis/yap-shortener/internal/service"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -28,7 +28,7 @@ var cfgMock = &config.Config{
 
 func TestURLHandler(t *testing.T) {
 	logger, _ := zap.NewProduction()
-	urlRepository := file.NewFileURLRepository(cfgMock.FileStoragePath, logger)
+	urlRepository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(urlRepository, logger)
 
 	e := echo.New()
@@ -50,7 +50,7 @@ func TestURLHandler(t *testing.T) {
 		{
 			name:   "positive POST test #1",
 			method: http.MethodPost,
-			body:   "https://practicum.yandex.ru/",
+			body:   "http://fgdgdfg.com/qwpoeipqowei",
 			path:   "http://localhost:8080/",
 			want: want{
 				code: http.StatusCreated,
@@ -59,7 +59,7 @@ func TestURLHandler(t *testing.T) {
 		{
 			name:   "positive POST test #2",
 			method: http.MethodPost,
-			body:   "https://ru.tradingview.com/",
+			body:   "http://ip95f7tnksykxx.biz/q3jl16cuadw/viajydc/kp8rl2",
 			path:   "http://localhost:8080/",
 			want: want{
 				code: http.StatusCreated,
@@ -77,18 +77,18 @@ func TestURLHandler(t *testing.T) {
 		{
 			name:   "positive GET test #1",
 			method: http.MethodGet,
-			body:   "https://practicum.yandex.ru/",
-			path:   "http://localhost:8080/MGRkMTk",
+			body:   "https://web.telegram.org/a/",
+			path:   "http://localhost:8080/ZDFiODN",
 			want: want{
 				code:     http.StatusTemporaryRedirect,
-				location: "https://practicum.yandex.ru",
+				location: "https://web.telegram.org/a/",
 			},
 		},
 		{
 			name:   "negative GET test #1 (wrong id)",
 			method: http.MethodGet,
-			body:   "https://practicum.yandex.ru/",
-			path:   "http://localhost:8080/MGRkiuY",
+			body:   "https://stackoverflow.com/",
+			path:   "http://localhost:8080/918237918273",
 			want: want{
 				code:     http.StatusBadRequest,
 				location: "",
@@ -131,12 +131,11 @@ func TestURLHandler(t *testing.T) {
 			}
 		})
 	}
-	_ = urlService.DeleteAll
 }
 
 func TestPostShorten(t *testing.T) {
 	logger, _ := zap.NewProduction()
-	urlRepository := file.NewFileURLRepository(cfgMock.FileStoragePath, logger)
+	urlRepository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(urlRepository, logger)
 
 	e := echo.New()
@@ -159,12 +158,12 @@ func TestPostShorten(t *testing.T) {
 		{
 			name:        "positive PostShorten test #1",
 			method:      http.MethodPost,
-			body:        `{"url":"https://practicum.yandex.ru/"}`,
+			body:        `{"url":"https://www.dns-shop.ru/"}`,
 			contentType: "application/json",
 			path:        "http://localhost:8080/api/shorten",
 			want: want{
 				code:     http.StatusCreated,
-				response: `{"result":"http://localhost:8080/MGRkMTk"}` + "\n",
+				response: `{"result":"http://localhost:8080/ZmM0NTQ"}` + "\n",
 			},
 		},
 		{
@@ -222,35 +221,34 @@ func TestGetURL(t *testing.T) {
 
 	s.EXPECT().GetByyID(gomock.Any(), gomock.Any()).AnyTimes().Return(message, nil)
 
-
 	logger, _ := zap.NewProduction()
 	e := echo.New()
 	h := New(e, s, cfgMock.URLPrefix, logger)
 	defer e.Close()
 
 	testCases := []struct {
-		name         string
-		method       string
-		body         string
-		expectedCode int
-		path         string
-		expectedBody string
+		name             string
+		method           string
+		body             string
+		expectedCode     int
+		path             string
+		expectedBody     string
 		expectedLocation string
 	}{
 		{
-			name:         "BadRequest - ID is empty",
-			method:       http.MethodGet,
-			expectedCode: http.StatusBadRequest,
-			path:         "http://localhost:8080/",
-			expectedBody: "Error: Unable to handle empty request",
+			name:             "BadRequest - ID is empty",
+			method:           http.MethodGet,
+			expectedCode:     http.StatusBadRequest,
+			path:             "http://localhost:8080/",
+			expectedBody:     "Error: Unable to handle empty request",
 			expectedLocation: "",
 		},
 		{
-			name:         "TemporaryRedirect - ID is not empty",
-			method:       http.MethodGet,
-			expectedCode: http.StatusTemporaryRedirect,
-			path:         "http://localhost:8080/MGRkMTk",
-			expectedBody: "",
+			name:             "TemporaryRedirect - ID is not empty",
+			method:           http.MethodGet,
+			expectedCode:     http.StatusTemporaryRedirect,
+			path:             "http://localhost:8080/MGRkMTk",
+			expectedBody:     "",
 			expectedLocation: "https://practicum.yandex.ru/",
 		},
 	}
@@ -287,9 +285,9 @@ func TestGetURLError(t *testing.T) {
 	s.EXPECT().GetByyID(gomock.Any(), gomock.Any()).Times(1).Return("", apperrors.ErrorURLNotFound)
 
 	testCaseWithError := []struct {
-		name         string 
+		name         string
 		method       string
-		body         string 
+		body         string
 		expectedCode int
 		path         string
 		expectedBody string
