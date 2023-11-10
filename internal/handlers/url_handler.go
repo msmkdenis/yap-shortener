@@ -149,7 +149,7 @@ func (h *URLHandler) PostURL(c echo.Context) error {
 
 	if errors.Is(err, apperrors.ErrorURLAlreadyExists) {
 		h.logger.Error("StatusConflict: url already exists", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
-		return c.JSON(http.StatusConflict, url.Shortened)
+		return c.String(http.StatusConflict, url.Shortened)
 	}
 
 	c.Response().WriteHeader(http.StatusCreated)
