@@ -3,11 +3,12 @@ package file
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/labstack/echo/v4"
 	"io"
 	"os"
 	"path/filepath"
 	"sync"
+
+	"github.com/labstack/echo/v4"
 
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/model"
@@ -54,7 +55,7 @@ func NewFileURLRepository(path string, logger *zap.Logger) *FileURLRepository {
 	}
 }
 
-func (r *FileURLRepository) Insert(c echo.Context, url model.URL) (*model.URL, error) {
+func (r *FileURLRepository) InsertOrUpdate(c echo.Context, url model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -65,13 +66,45 @@ func (r *FileURLRepository) Insert(c echo.Context, url model.URL) (*model.URL, e
 	}
 	defer file.Close()
 
-	encoder := json.NewEncoder(file)
-	err = encoder.Encode(url)
-	if err != nil {
-		return nil, apperrors.NewValueError("unable to encode to file", utils.Caller(), err)
+	decoder := json.NewDecoder(file)
+	var urlsToSave []model.URL
+	var insertedOrUpdatedURL model.URL
+	var checkExist bool
+	for {
+		var existingURL model.URL
+		err := decoder.Decode(&existingURL)
+		if err == io.EOF {
+			if !checkExist {
+				urlsToSave = append(urlsToSave, url)
+				insertedOrUpdatedURL = url
+			}
+			break
+		}
+		if err != nil {
+			return nil, apperrors.NewValueError("unable to decode from file", utils.Caller(), err)
+		}
+		if existingURL.ID == url.ID {
+			existingURL.Original = url.Original
+			existingURL.Shortened = url.Shortened
+			insertedOrUpdatedURL = existingURL
+			checkExist = true
+		}
+		urlsToSave = append(urlsToSave, existingURL)
 	}
 
-	return &url, nil
+	if err := os.Truncate(r.fileStorage.Name(), 0); err != nil {
+		return nil, apperrors.NewValueError(fmt.Sprintf("Failed to truncate file: %s", r.fileStorage.Name()), utils.Caller(), err)
+	}
+
+	encoder := json.NewEncoder(file)
+	for _, url := range urlsToSave {
+		err = encoder.Encode(url)
+		if err != nil {
+			return nil, apperrors.NewValueError("unable to encode to file", utils.Caller(), err)
+		}
+	}
+
+	return &insertedOrUpdatedURL, nil
 }
 
 func (r *FileURLRepository) SelectByID(c echo.Context, key string) (*model.URL, error) {
@@ -151,6 +184,78 @@ func (r *FileURLRepository) Ping(c echo.Context) error {
 	return nil
 }
 
-func (r *FileURLRepository) InsertBatch(c echo.Context, urls []model.URL) ([]model.URL, error) {
-	return nil, nil
+func (r *FileURLRepository) InsertAllOrUpdate(c echo.Context, urls []model.URL) ([]model.URL, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.logger.Info(fmt.Sprintf("Opening file: %s", r.fileStorage.Name()))
+	file, err := os.OpenFile(r.fileStorage.Name(), os.O_RDWR|os.O_APPEND, perm)
+	if err != nil {
+		return nil, apperrors.NewValueError("unable to open file", utils.Caller(), err)
+	}
+	defer file.Close()
+
+	//Create map of urls to be saved with id as key
+	var urlMap = make(map[string]model.URL)
+	for _, url := range urls {
+		urlMap[url.ID] = url
+	}
+
+	//Read all urls from file, update with new urls to be saved, store urls to save (with updated ones) in urlsToSave slice
+	decoder := json.NewDecoder(file)
+	var urlsToSave []model.URL
+	for {
+		var existingURL model.URL
+		err := decoder.Decode(&existingURL)
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			return nil, apperrors.NewValueError("unable to decode from file", utils.Caller(), err)
+		}
+		if v, ok := urlMap[existingURL.ID]; ok { //If url exists in map, remove it from map and add it to urlsToSave
+			existingURL.Original = v.Original
+			existingURL.Shortened = v.Shortened
+			delete(urlMap, existingURL.ID) 
+		}
+		
+		urlsToSave = append(urlsToSave, existingURL)
+	}
+
+	//Clear file in order to prepare for further encoding
+	if err := os.Truncate(r.fileStorage.Name(), 0); err != nil {
+		return nil, apperrors.NewValueError(fmt.Sprintf("Failed to truncate file: %s", r.fileStorage.Name()), utils.Caller(), err)
+	}
+
+	//Check if map is empty, if not, add remaining urls to urlsToSave
+	if len(urlMap) > 0 {
+		for _, v := range urlMap {
+			urlsToSave = append(urlsToSave, v)
+		}
+	}
+
+	//Encode urlsToSave to file
+	encoder := json.NewEncoder(file)
+	for _, url := range urlsToSave {
+		err = encoder.Encode(url)
+		if err != nil {
+			return nil, apperrors.NewValueError("unable to encode to file", utils.Caller(), err)
+		}
+	}
+
+	//Create map of incomed urls to save with id as key (for faster lookup)
+	var urlMapIn = make(map[string]model.URL)
+	for _, url := range urls {
+		urlMapIn[url.ID] = url
+	}
+
+	//Take from savedURLs slice only urls with id that have been saved
+	var savedURLs []model.URL
+	for _, url := range urlsToSave {
+		if _, ok := urlMapIn[url.ID]; ok {
+			savedURLs = append(savedURLs, url)
+		}
+	}
+
+	return savedURLs, nil
 }

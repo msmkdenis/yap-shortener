@@ -24,7 +24,7 @@ func NewURLRepository(logger *zap.Logger) *MemoryURLRepository {
 	}
 }
 
-func (r *MemoryURLRepository) Insert(c echo.Context, u model.URL) (*model.URL, error) {
+func (r *MemoryURLRepository) InsertOrUpdate(c echo.Context, u model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -74,6 +74,13 @@ func (r *MemoryURLRepository) Ping(c echo.Context) error {
 	return nil
 }
 
-func (r *MemoryURLRepository) InsertBatch(c echo.Context, urls []model.URL) ([]model.URL, error) {
-	return nil, nil
+func (r *MemoryURLRepository) InsertAllOrUpdate(c echo.Context, urls []model.URL) ([]model.URL, error) {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	for _, v := range urls {
+		r.storage[v.ID] = v
+	}
+
+	return urls, nil
 }

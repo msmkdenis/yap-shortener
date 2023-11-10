@@ -9,6 +9,7 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	echo "github.com/labstack/echo/v4"
+	dto "github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 	model "github.com/msmkdenis/yap-shortener/internal/model"
 )
 
@@ -48,6 +49,21 @@ func (m *MockURLService) Add(arg0 echo.Context, arg1, arg2 string) (*model.URL, 
 func (mr *MockURLServiceMockRecorder) Add(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Add", reflect.TypeOf((*MockURLService)(nil).Add), arg0, arg1, arg2)
+}
+
+// AddAll mocks base method.
+func (m *MockURLService) AddAll(arg0 echo.Context, arg1 []dto.URLBatchRequestType, arg2 string) ([]model.URL, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "AddAll", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]model.URL)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// AddAll indicates an expected call of AddAll.
+func (mr *MockURLServiceMockRecorder) AddAll(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "AddAll", reflect.TypeOf((*MockURLService)(nil).AddAll), arg0, arg1, arg2)
 }
 
 // DeleteAll mocks base method.

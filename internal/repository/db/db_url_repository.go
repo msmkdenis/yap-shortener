@@ -30,7 +30,7 @@ func (r *PostgresURLRepository) Ping(ctx echo.Context) error {
 	return err
 }
 
-func (r *PostgresURLRepository) Insert(ctx echo.Context, url model.URL) (*model.URL, error) {
+func (r *PostgresURLRepository) InsertOrUpdate(ctx echo.Context, url model.URL) (*model.URL, error) {
 	tx, err := r.PostgresPool.db.Begin(ctx.Request().Context())
 	if err != nil {
 		return nil, apperrors.NewValueError("unable to start transaction", utils.Caller(), err)
@@ -100,8 +100,7 @@ func (r *PostgresURLRepository) SelectAll(ctx echo.Context) ([]model.URL, error)
 	}
 	defer tx.Rollback(ctx.Request().Context())
 
-	var urls []model.URL
-	rows, err := tx.Query(ctx.Request().Context(),
+	queryRows, err := tx.Query(ctx.Request().Context(),
 		`
 		select id, original_url, short_url
 		from url_shortener.url
@@ -109,15 +108,11 @@ func (r *PostgresURLRepository) SelectAll(ctx echo.Context) ([]model.URL, error)
 	if err != nil {
 		return nil, apperrors.NewValueError("query failed", utils.Caller(), err)
 	}
-	defer rows.Close()
+	defer queryRows.Close()
 
-	for rows.Next() {
-		var url model.URL
-		err = rows.Scan(&url.ID, &url.Original, &url.Shortened)
-		if err != nil {
-			return nil, apperrors.NewValueError("unable to scan values", utils.Caller(), err)
-		}
-		urls = append(urls, url)
+	urls, err := pgx.CollectRows(queryRows, pgx.RowToStructByPos[model.URL])
+	if err != nil {
+		return nil, apperrors.NewValueError("unable to collect rows", utils.Caller(), err)
 	}
 
 	err = tx.Commit(ctx.Request().Context())
@@ -152,7 +147,7 @@ func (r *PostgresURLRepository) DeleteAll(ctx echo.Context) error {
 	return nil
 }
 
-func (r *PostgresURLRepository) InsertBatch(ctx echo.Context, urls []model.URL) ([]model.URL, error) {
+func (r *PostgresURLRepository) InsertAllOrUpdate(ctx echo.Context, urls []model.URL) ([]model.URL, error) {
 	tx, err := r.PostgresPool.db.Begin(ctx.Request().Context())
 	if err != nil {
 		return nil, apperrors.NewValueError("unable to start transaction", utils.Caller(), err)
@@ -176,7 +171,7 @@ func (r *PostgresURLRepository) InsertBatch(ctx echo.Context, urls []model.URL) 
 	count, err := tx.CopyFrom(
 		ctx.Request().Context(),
 		pgx.Identifier{"pg_temp", "_temp_upsert_urls"},
-		[]string{"id", "original_url", "short_url"}, 
+		[]string{"id", "original_url", "short_url"},
 		pgx.CopyFromRows(rows),
 	)
 	if err != nil {
@@ -186,7 +181,7 @@ func (r *PostgresURLRepository) InsertBatch(ctx echo.Context, urls []model.URL) 
 		return nil, apperrors.NewValueError("not all rows were inserted", utils.Caller(), err)
 	}
 
-	quaryRows, err := tx.Query(ctx.Request().Context(),
+	queryRows, err := tx.Query(ctx.Request().Context(),
 		`
 		insert into url_shortener.url (id, original_url, short_url) 
 		select id, original_url, short_url from pg_temp._temp_upsert_urls 
@@ -196,16 +191,11 @@ func (r *PostgresURLRepository) InsertBatch(ctx echo.Context, urls []model.URL) 
 	if err != nil {
 		return nil, apperrors.NewValueError("unable to upsert batch", utils.Caller(), err)
 	}
-	defer quaryRows.Close()
+	defer queryRows.Close()
 
-	var savedUrls []model.URL
-	for quaryRows.Next() {
-		var url model.URL
-		err = quaryRows.Scan(&url.ID, &url.Original, &url.Shortened)
-		if err != nil {
-			return nil, apperrors.NewValueError("unable to scan values", utils.Caller(), err)
-		}
-		savedUrls = append(savedUrls, url)
+	savedURLs, err := pgx.CollectRows(queryRows, pgx.RowToStructByPos[model.URL])
+	if err != nil {
+		return nil, apperrors.NewValueError("unable to collect rows", utils.Caller(), err)
 	}
 
 	err = tx.Commit(ctx.Request().Context())
@@ -213,5 +203,5 @@ func (r *PostgresURLRepository) InsertBatch(ctx echo.Context, urls []model.URL) 
 		return nil, apperrors.NewValueError("commit failed", utils.Caller(), err)
 	}
 
-	return savedUrls, nil
+	return savedURLs, nil
 }

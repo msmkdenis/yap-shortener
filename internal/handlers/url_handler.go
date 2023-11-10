@@ -76,7 +76,7 @@ func (h *URLHandler) PostBatch(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	savedURLs, err := h.urlService.AddBatch(c, urlBatchRequest, h.urlPrefix)
+	savedURLs, err := h.urlService.AddAll(c, urlBatchRequest, h.urlPrefix)
 	if err != nil {
 		h.logger.Error("StatusInternalServerError: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
@@ -93,7 +93,6 @@ func (h *URLHandler) PostBatch(c echo.Context) error {
 
 	return c.JSON(http.StatusCreated, urlBatch)
 }
-
 
 func (h *URLHandler) PostShorten(c echo.Context) error {
 	header := c.Request().Header.Get("Content-Type")
@@ -212,7 +211,7 @@ func (h *URLHandler) checkRequest(s string) error {
 	if len(s) == 0 {
 		return apperrors.NewValueError("Unable to handle empty request", utils.Caller(), apperrors.ErrorEmptyRequest)
 	}
-	
+
 	return nil
 }
 
