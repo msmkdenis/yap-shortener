@@ -91,7 +91,7 @@ func (r *FileURLRepository) SelectByID(c echo.Context, key string) (*model.URL, 
 	for {
 		err := decoder.Decode(&url)
 		if err == io.EOF {
-			return nil, apperrors.NewValueError(fmt.Sprintf("Url with id %s not found", key), utils.Caller(), apperrors.ErrorURLNotFound)
+			return nil, apperrors.NewValueError(fmt.Sprintf("Url with id %s not found", key), utils.Caller(), apperrors.ErrURLNotFound)
 		}
 		if err != nil {
 			return nil, apperrors.NewValueError("unable to decode from file", utils.Caller(), err)

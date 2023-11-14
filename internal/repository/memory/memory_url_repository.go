@@ -1,10 +1,11 @@
 package memory
 
 import (
+	"sync"
+
 	"github.com/labstack/echo/v4"
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
-	"sync"
 
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	"go.uber.org/zap"
@@ -40,7 +41,7 @@ func (r *MemoryURLRepository) SelectByID(c echo.Context, key string) (*model.URL
 
 	url, ok := r.storage[key]
 	if !ok {
-		return &url, apperrors.ErrorURLNotFound
+		return &url, apperrors.ErrURLNotFound
 	}
 
 	return &url, nil
@@ -68,7 +69,7 @@ func (r *MemoryURLRepository) DeleteAll(c echo.Context) error {
 
 func (r *MemoryURLRepository) Ping(c echo.Context) error {
 	if r.storage == nil {
-		return apperrors.NewValueError("storage is not initialized", utils.Caller(), apperrors.ErrorURLNotFound)
+		return apperrors.NewValueError("storage is not initialized", utils.Caller(), apperrors.ErrURLNotFound)
 	}
 
 	return nil

@@ -1,7 +1,6 @@
 package service
 
 import (
-	"database/sql"
 	"fmt"
 
 	"github.com/labstack/echo/v4"
@@ -44,7 +43,7 @@ func (u *URLUseCase) Add(ctx echo.Context, s, host string) (*model.URL, error) {
 
 	existingURL, err := u.repository.SelectByID(ctx, urlKey)
 	if err == nil {
-		return existingURL, apperrors.ErrorURLAlreadyExists
+		return existingURL, apperrors.ErrURLAlreadyExists
 	}
 
 	savedURL, err := u.repository.Insert(ctx, *url)
@@ -95,7 +94,7 @@ func (u *URLUseCase) AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, ho
 	var keys = make(map[string]string)
 	for _, v := range urls {
 		if _, ok := keys[v.CorrelationID]; ok {
-			return nil, apperrors.NewValueError("duplicated keys in batch", utils.Caller(), apperrors.ErrorDuplicatedKeys)
+			return nil, apperrors.NewValueError("duplicated keys", utils.Caller(), apperrors.ErrDuplicatedKeys)
 		}
 		keys[v.CorrelationID] = v.CorrelationID
 		shortURL := utils.GenerateMD5Hash(v.OriginalURL)
@@ -103,7 +102,7 @@ func (u *URLUseCase) AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, ho
 			ID:            shortURL,
 			Original:      v.OriginalURL,
 			Shortened:     host + "/" + shortURL,
-			CorrelationID: sql.NullString{String: v.CorrelationID, Valid: true},
+			CorrelationID: v.CorrelationID,
 		}
 		urlsToSave = append(urlsToSave, url)
 	}
@@ -120,7 +119,7 @@ func (u *URLUseCase) AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, ho
 	var response []dto.URLBatchResponseType
 	for _, url := range savedURLs {
 		responseURL := dto.URLBatchResponseType{
-			CorrelationID: url.CorrelationID.String,
+			CorrelationID: url.CorrelationID,
 			ShortenedURL:  url.Shortened,
 		}
 		response = append(response, responseURL)

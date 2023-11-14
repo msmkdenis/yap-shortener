@@ -1,12 +1,13 @@
 package handlers
 
 import (
-	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 	"io"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 
 	"github.com/golang/mock/gomock"
 	"github.com/labstack/echo/v4"
@@ -105,12 +106,12 @@ func TestURLHandler(t *testing.T) {
 				preRequest := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", strings.NewReader(test.body))
 				preW := httptest.NewRecorder()
 				c := e.NewContext(preRequest, preW)
-				_ = h.PostURL(c)
+				_ = h.AddURL(c)
 
 				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
 				w := httptest.NewRecorder()
 				b := e.NewContext(request, w)
-				_ = h.GetURL(b)
+				_ = h.FindURL(b)
 				res := w.Result()
 				defer res.Body.Close()
 				assert.Equal(t, test.want.code, res.StatusCode)
@@ -122,7 +123,7 @@ func TestURLHandler(t *testing.T) {
 				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
 				w := httptest.NewRecorder()
 				l := e.NewContext(request, w)
-				_ = h.PostURL(l)
+				_ = h.AddURL(l)
 				res := w.Result()
 				assert.Equal(t, test.want.code, res.StatusCode)
 				defer res.Body.Close()
@@ -198,7 +199,7 @@ func TestPostShorten(t *testing.T) {
 				request.Header.Set("Content-Type", test.contentType)
 				w := httptest.NewRecorder()
 				l := e.NewContext(request, w)
-				_ = h.PostShorten(l)
+				_ = h.AddShorten(l)
 				res := w.Result()
 				assert.Equal(t, test.want.code, res.StatusCode)
 				defer res.Body.Close()
@@ -258,7 +259,7 @@ func TestGetURL(t *testing.T) {
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			w := httptest.NewRecorder()
 			l := e.NewContext(request, w)
-			_ = h.GetURL(l)
+			_ = h.FindURL(l)
 			res := w.Result()
 			assert.Equal(t, test.expectedCode, res.StatusCode)
 			assert.Equal(t, test.expectedLocation, res.Header.Get("Location"))
@@ -282,7 +283,7 @@ func TestGetURLError(t *testing.T) {
 	h := New(e, s, cfgMock.URLPrefix, logger)
 	defer e.Close()
 
-	s.EXPECT().GetByyID(gomock.Any(), gomock.Any()).Times(1).Return("", apperrors.ErrorURLNotFound)
+	s.EXPECT().GetByyID(gomock.Any(), gomock.Any()).Times(1).Return("", apperrors.ErrURLNotFound)
 
 	testCaseWithError := []struct {
 		name         string
@@ -306,7 +307,7 @@ func TestGetURLError(t *testing.T) {
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			w := httptest.NewRecorder()
 			l := e.NewContext(request, w)
-			_ = h.GetURL(l)
+			_ = h.FindURL(l)
 			res := w.Result()
 			assert.Equal(t, test.expectedCode, res.StatusCode)
 			response, err := io.ReadAll(res.Body)

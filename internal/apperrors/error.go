@@ -6,15 +6,15 @@ import (
 )
 
 var (
-	ErrorURLNotFound  error = errors.New("url not found")
-	ErrorEmptyRequest error = errors.New("unable to handle empty request")
-	ErrorDuplicatedKeys error = errors.New("duplicated keys in batch")
-	ErrorURLAlreadyExists error = errors.New("url already exists")
+	ErrURLNotFound      error = errors.New("url not found")
+	ErrEmptyRequest     error = errors.New("unable to handle empty request")
+	ErrDuplicatedKeys   error = errors.New("duplicated keys in batch")
+	ErrURLAlreadyExists error = errors.New("url already exists")
 )
 
-type ValueError struct {	
-	caller  string 
-	message string 
+type ValueError struct {
+	caller  string
+	message string
 	err     error
 }
 
