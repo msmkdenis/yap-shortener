@@ -20,7 +20,7 @@ import (
 var insertURLAndReturn string
 
 //go:embed queries/select_url_by_id.sql
-var selectURLById string
+var selectURLByID string
 
 //go:embed queries/select_all_urls.sql
 var selectAllURLs string
@@ -58,7 +58,7 @@ func (r *PostgresURLRepository) Insert(ctx context.Context, url model.URL) (*mod
 
 func (r *PostgresURLRepository) SelectByID(ctx context.Context, key string) (*model.URL, error) {
 	var url model.URL
-	err := r.PostgresPool.db.QueryRow(ctx, selectURLById, key).Scan(&url.ID, &url.Original, &url.Shortened, &url.CorrelationID)
+	err := r.PostgresPool.db.QueryRow(ctx, selectURLByID, key).Scan(&url.ID, &url.Original, &url.Shortened, &url.CorrelationID)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
