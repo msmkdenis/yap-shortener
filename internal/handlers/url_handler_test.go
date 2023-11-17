@@ -34,7 +34,7 @@ func TestURLHandler(t *testing.T) {
 
 	e := echo.New()
 
-	h := New(e, urlService, cfgMock.URLPrefix, logger)
+	h := NewURLHandler(e, urlService, cfgMock.URLPrefix, logger)
 
 	type want struct {
 		code     int
@@ -106,12 +106,14 @@ func TestURLHandler(t *testing.T) {
 				preRequest := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", strings.NewReader(test.body))
 				preW := httptest.NewRecorder()
 				c := e.NewContext(preRequest, preW)
-				_ = h.AddURL(c)
+				err := h.AddURL(c)
+				require.NoError(t, err)
 
 				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
 				w := httptest.NewRecorder()
 				b := e.NewContext(request, w)
-				_ = h.FindURL(b)
+				err = h.FindURL(b)
+				require.NoError(t, err)
 				res := w.Result()
 				defer res.Body.Close()
 				assert.Equal(t, test.want.code, res.StatusCode)
@@ -123,11 +125,12 @@ func TestURLHandler(t *testing.T) {
 				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
 				w := httptest.NewRecorder()
 				l := e.NewContext(request, w)
-				_ = h.AddURL(l)
+				err := h.AddURL(l)
+				require.NoError(t, err)
 				res := w.Result()
 				assert.Equal(t, test.want.code, res.StatusCode)
 				defer res.Body.Close()
-				_, err := io.ReadAll(res.Body)
+				_, err = io.ReadAll(res.Body)
 				require.NoError(t, err)
 			}
 		})
@@ -141,7 +144,7 @@ func TestPostShorten(t *testing.T) {
 
 	e := echo.New()
 
-	h := New(e, urlService, cfgMock.URLPrefix, logger)
+	h := NewURLHandler(e, urlService, cfgMock.URLPrefix, logger)
 
 	type want struct {
 		code     int
@@ -224,7 +227,7 @@ func TestGetURL(t *testing.T) {
 
 	logger, _ := zap.NewProduction()
 	e := echo.New()
-	h := New(e, s, cfgMock.URLPrefix, logger)
+	h := NewURLHandler(e, s, cfgMock.URLPrefix, logger)
 	defer e.Close()
 
 	testCases := []struct {
@@ -259,7 +262,8 @@ func TestGetURL(t *testing.T) {
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			w := httptest.NewRecorder()
 			l := e.NewContext(request, w)
-			_ = h.FindURL(l)
+			err := h.FindURL(l)
+			require.NoError(t, err)
 			res := w.Result()
 			assert.Equal(t, test.expectedCode, res.StatusCode)
 			assert.Equal(t, test.expectedLocation, res.Header.Get("Location"))
@@ -280,7 +284,7 @@ func TestGetURLError(t *testing.T) {
 
 	logger, _ := zap.NewProduction()
 	e := echo.New()
-	h := New(e, s, cfgMock.URLPrefix, logger)
+	h := NewURLHandler(e, s, cfgMock.URLPrefix, logger)
 	defer e.Close()
 
 	s.EXPECT().GetByyID(gomock.Any(), gomock.Any()).Times(1).Return("", apperrors.ErrURLNotFound)
@@ -307,7 +311,8 @@ func TestGetURLError(t *testing.T) {
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			w := httptest.NewRecorder()
 			l := e.NewContext(request, w)
-			_ = h.FindURL(l)
+			err := h.FindURL(l)
+			require.NoError(t, err)
 			res := w.Result()
 			assert.Equal(t, test.expectedCode, res.StatusCode)
 			response, err := io.ReadAll(res.Body)

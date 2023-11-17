@@ -1,14 +1,14 @@
 package file
 
 import (
+	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"sync"
-
-	"github.com/labstack/echo/v4"
 
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/model"
@@ -26,7 +26,7 @@ type FileURLRepository struct {
 	logger      *zap.Logger
 }
 
-func NewFileURLRepository(path string, logger *zap.Logger) *FileURLRepository {
+func NewFileURLRepository(path string, logger *zap.Logger) (*FileURLRepository, error) {
 	path = filepath.FromSlash(path)
 
 	dir := filepath.Dir(path)
@@ -35,7 +35,7 @@ func NewFileURLRepository(path string, logger *zap.Logger) *FileURLRepository {
 		logger.Info(fmt.Sprintf("Creating directory: %s", dir))
 		err = os.Mkdir(dir, perm)
 		if err != nil {
-			logger.Fatal(fmt.Sprintf("Error while creating directory: %s", dir), zap.Error(err))
+			return nil, apperrors.NewValueError(fmt.Sprintf("Unable to create directory: %s", dir), utils.Caller(), err)
 		}
 		logger.Info(fmt.Sprintf("Directory %s was created", dir))
 	}
@@ -43,7 +43,7 @@ func NewFileURLRepository(path string, logger *zap.Logger) *FileURLRepository {
 	logger.Info(fmt.Sprintf("Creating file: %s", path))
 	file, err := os.OpenFile(path, os.O_CREATE, perm)
 	if err != nil {
-		logger.Fatal(fmt.Sprintf("Unable to create file: %s", path), zap.Error(err))
+		return nil, apperrors.NewValueError(fmt.Sprintf("Unable to create file: %s", path), utils.Caller(), err)
 	}
 	logger.Info(fmt.Sprintf("FileStorage %s was created", file.Name()))
 	defer file.Close()
@@ -52,10 +52,10 @@ func NewFileURLRepository(path string, logger *zap.Logger) *FileURLRepository {
 		fileStorage: file,
 		logger:      logger,
 		mu:          sync.RWMutex{},
-	}
+	}, nil
 }
 
-func (r *FileURLRepository) Insert(c echo.Context, url model.URL) (*model.URL, error) {
+func (r *FileURLRepository) Insert(ctx context.Context, url model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -75,7 +75,7 @@ func (r *FileURLRepository) Insert(c echo.Context, url model.URL) (*model.URL, e
 	return &url, nil
 }
 
-func (r *FileURLRepository) SelectByID(c echo.Context, key string) (*model.URL, error) {
+func (r *FileURLRepository) SelectByID(ctx context.Context, key string) (*model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -104,7 +104,7 @@ func (r *FileURLRepository) SelectByID(c echo.Context, key string) (*model.URL, 
 	return &url, nil
 }
 
-func (r *FileURLRepository) SelectAll(c echo.Context) ([]model.URL, error) {
+func (r *FileURLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -133,7 +133,7 @@ func (r *FileURLRepository) SelectAll(c echo.Context) ([]model.URL, error) {
 	return urls, nil
 }
 
-func (r *FileURLRepository) DeleteAll(c echo.Context) error {
+func (r *FileURLRepository) DeleteAll(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -143,7 +143,7 @@ func (r *FileURLRepository) DeleteAll(c echo.Context) error {
 	return nil
 }
 
-func (r *FileURLRepository) Ping(c echo.Context) error {
+func (r *FileURLRepository) Ping(ctx context.Context) error {
 	file, err := os.OpenFile(r.fileStorage.Name(), os.O_RDONLY, perm)
 	if err != nil {
 		return apperrors.NewValueError("unable to open file", utils.Caller(), err)
@@ -152,7 +152,7 @@ func (r *FileURLRepository) Ping(c echo.Context) error {
 	return nil
 }
 
-func (r *FileURLRepository) InsertAllOrUpdate(c echo.Context, urls []model.URL) ([]model.URL, error) {
+func (r *FileURLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL) ([]model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -164,7 +164,7 @@ func (r *FileURLRepository) InsertAllOrUpdate(c echo.Context, urls []model.URL) 
 	defer file.Close()
 
 	//Create map of urls to be saved with id as key
-	var urlMap = make(map[string]model.URL)
+	var urlMap = make(map[string]model.URL, len(urls))
 	for _, url := range urls {
 		urlMap[url.ID] = url
 	}
@@ -175,7 +175,7 @@ func (r *FileURLRepository) InsertAllOrUpdate(c echo.Context, urls []model.URL) 
 	for {
 		var existingURL model.URL
 		err := decoder.Decode(&existingURL)
-		if err == io.EOF {
+		if errors.Is(err, io.EOF) {
 			break
 		}
 		if err != nil {
@@ -195,11 +195,8 @@ func (r *FileURLRepository) InsertAllOrUpdate(c echo.Context, urls []model.URL) 
 		return nil, apperrors.NewValueError(fmt.Sprintf("Failed to truncate file: %s", r.fileStorage.Name()), utils.Caller(), err)
 	}
 
-	//Check if map is empty, if not, add remaining urls to urlsToSave
-	if len(urlMap) > 0 {
-		for _, v := range urlMap {
-			urlsToSave = append(urlsToSave, v)
-		}
+	for _, v := range urlMap {
+		urlsToSave = append(urlsToSave, v)
 	}
 
 	//Encode urlsToSave to file
@@ -212,7 +209,7 @@ func (r *FileURLRepository) InsertAllOrUpdate(c echo.Context, urls []model.URL) 
 	}
 
 	//Create map of incomed urls to save with id as key (for faster lookup)
-	var urlMapIn = make(map[string]model.URL)
+	var urlMapIn = make(map[string]model.URL, len(urls))
 	for _, url := range urls {
 		urlMapIn[url.ID] = url
 	}

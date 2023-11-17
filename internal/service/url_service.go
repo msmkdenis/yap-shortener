@@ -1,9 +1,8 @@
 package service
 
 import (
+	"context"
 	"fmt"
-
-	"github.com/labstack/echo/v4"
 
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
@@ -13,12 +12,12 @@ import (
 )
 
 type URLService interface {
-	Add(ctx echo.Context, s string, host string) (*model.URL, error)
-	AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, host string) ([]dto.URLBatchResponseType, error)
-	GetAll(ctx echo.Context) ([]string, error)
-	DeleteAll(ctx echo.Context) error
-	GetByyID(ctx echo.Context, key string) (string, error)
-	Ping(ctx echo.Context) error
+	Add(ctx context.Context, s string, host string) (*model.URL, error)
+	AddAll(ctx context.Context, urls []dto.URLBatchRequestType, host string) ([]dto.URLBatchResponseType, error)
+	GetAll(ctx context.Context) ([]string, error)
+	DeleteAll(ctx context.Context) error
+	GetByyID(ctx context.Context, key string) (string, error)
+	Ping(ctx context.Context) error
 }
 
 type URLUseCase struct {
@@ -33,7 +32,7 @@ func NewURLService(repository model.URLRepository, logger *zap.Logger) *URLUseCa
 	}
 }
 
-func (u *URLUseCase) Add(ctx echo.Context, s, host string) (*model.URL, error) {
+func (u *URLUseCase) Add(ctx context.Context, s, host string) (*model.URL, error) {
 	urlKey := utils.GenerateMD5Hash(s)
 	url := &model.URL{
 		ID:        urlKey,
@@ -54,7 +53,7 @@ func (u *URLUseCase) Add(ctx echo.Context, s, host string) (*model.URL, error) {
 	return savedURL, nil
 }
 
-func (u *URLUseCase) GetAll(ctx echo.Context) ([]string, error) {
+func (u *URLUseCase) GetAll(ctx context.Context) ([]string, error) {
 	urls, err := u.repository.SelectAll(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
@@ -68,14 +67,14 @@ func (u *URLUseCase) GetAll(ctx echo.Context) ([]string, error) {
 	return originalURLs, nil
 }
 
-func (u *URLUseCase) DeleteAll(ctx echo.Context) error {
+func (u *URLUseCase) DeleteAll(ctx context.Context) error {
 	if err := u.repository.DeleteAll(ctx); err != nil {
 		return fmt.Errorf("caller: %s %w", utils.Caller(), err)
 	}
 	return nil
 }
 
-func (u *URLUseCase) GetByyID(ctx echo.Context, key string) (string, error) {
+func (u *URLUseCase) GetByyID(ctx context.Context, key string) (string, error) {
 	url, err := u.repository.SelectByID(ctx, key)
 	if err != nil {
 		return "", fmt.Errorf("caller: %s %w", utils.Caller(), err)
@@ -84,14 +83,14 @@ func (u *URLUseCase) GetByyID(ctx echo.Context, key string) (string, error) {
 	return url.Original, nil
 }
 
-func (u *URLUseCase) Ping(ctx echo.Context) error {
+func (u *URLUseCase) Ping(ctx context.Context) error {
 	err := u.repository.Ping(ctx)
 	return err
 }
 
-func (u *URLUseCase) AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, host string) ([]dto.URLBatchResponseType, error) {
+func (u *URLUseCase) AddAll(ctx context.Context, urls []dto.URLBatchRequestType, host string) ([]dto.URLBatchResponseType, error) {
 	var urlsToSave []model.URL
-	var keys = make(map[string]string)
+	var keys = make(map[string]string, len(urls))
 	for _, v := range urls {
 		if _, ok := keys[v.CorrelationID]; ok {
 			return nil, apperrors.NewValueError("duplicated keys", utils.Caller(), apperrors.ErrDuplicatedKeys)
@@ -107,14 +106,10 @@ func (u *URLUseCase) AddAll(ctx echo.Context, urls []dto.URLBatchRequestType, ho
 		urlsToSave = append(urlsToSave, url)
 	}
 
-	fmt.Println(urlsToSave)
-
 	savedURLs, err := u.repository.InsertAllOrUpdate(ctx, urlsToSave)
 	if err != nil {
 		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
 	}
-
-	fmt.Println(savedURLs)
 
 	var response []dto.URLBatchResponseType
 	for _, url := range savedURLs {

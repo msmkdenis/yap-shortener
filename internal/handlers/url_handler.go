@@ -24,7 +24,7 @@ type URLHandler struct {
 	logger     *zap.Logger
 }
 
-func New(e *echo.Echo, service service.URLService, urlPrefix string, logger *zap.Logger) *URLHandler {
+func NewURLHandler(e *echo.Echo, service service.URLService, urlPrefix string, logger *zap.Logger) *URLHandler {
 	handler := &URLHandler{
 		urlService: service,
 		urlPrefix:  urlPrefix,
@@ -71,12 +71,12 @@ func (h *URLHandler) AddBatch(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
 	}
 
-	if err := h.checkRequest(string(body)); err != nil {
-		h.logger.Error("StatusBadRequest: unable to handle empty request", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
-		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
+	if len(urlBatchRequest) == 0 {
+		h.logger.Error("StatusBadRequest: empty batch request", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusBadRequest, "Error: empty batch request")
 	}
 
-	savedURLs, err := h.urlService.AddAll(c, urlBatchRequest, h.urlPrefix)
+	savedURLs, err := h.urlService.AddAll(c.Request().Context(), urlBatchRequest, h.urlPrefix)
 	if err != nil {
 		h.logger.Error("StatusInternalServerError: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
@@ -111,7 +111,7 @@ func (h *URLHandler) AddShorten(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	url, err := h.urlService.Add(c, urlRequest.URL, h.urlPrefix)
+	url, err := h.urlService.Add(c.Request().Context(), urlRequest.URL, h.urlPrefix)
 	if err != nil && !errors.Is(err, apperrors.ErrURLAlreadyExists) {
 		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
@@ -122,7 +122,7 @@ func (h *URLHandler) AddShorten(c echo.Context) error {
 	}
 
 	if errors.Is(err, apperrors.ErrURLAlreadyExists) {
-		h.logger.Error("StatusConflict: url already exists", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Warn("StatusConflict: url already exists", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.JSON(http.StatusConflict, response)
 	}
 
@@ -141,14 +141,14 @@ func (h *URLHandler) AddURL(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	url, err := h.urlService.Add(c, string(body), h.urlPrefix)
+	url, err := h.urlService.Add(c.Request().Context(), string(body), h.urlPrefix)
 	if err != nil && !errors.Is(err, apperrors.ErrURLAlreadyExists) {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
 
 	if errors.Is(err, apperrors.ErrURLAlreadyExists) {
-		h.logger.Error("StatusConflict: url already exists", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Warn("StatusConflict: url already exists", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusConflict, url.Shortened)
 	}
 
@@ -157,7 +157,7 @@ func (h *URLHandler) AddURL(c echo.Context) error {
 }
 
 func (h *URLHandler) ClearAll(c echo.Context) error {
-	if err := h.urlService.DeleteAll(c); err != nil {
+	if err := h.urlService.DeleteAll(c.Request().Context()); err != nil {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
@@ -166,7 +166,7 @@ func (h *URLHandler) ClearAll(c echo.Context) error {
 }
 
 func (h *URLHandler) FindAll(c echo.Context) error {
-	urls, err := h.urlService.GetAll(c)
+	urls, err := h.urlService.GetAll(c.Request().Context())
 	if err != nil {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
@@ -183,7 +183,7 @@ func (h *URLHandler) FindURL(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	originalURL, err := h.urlService.GetByyID(c, id)
+	originalURL, err := h.urlService.GetByyID(c.Request().Context(), id)
 
 	var message string
 	var status int
@@ -218,7 +218,7 @@ func (h *URLHandler) checkRequest(s string) error {
 
 func (h *URLHandler) Ping(c echo.Context) error {
 	status := http.StatusOK
-	err := h.urlService.Ping(c)
+	err := h.urlService.Ping(c.Request().Context())
 	if err != nil {
 		status = http.StatusInternalServerError
 	}

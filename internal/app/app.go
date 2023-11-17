@@ -16,27 +16,46 @@ import (
 func URLShortenerRun() {
 	cfg := *config.NewConfig()
 	logger, _ := zap.NewProduction()
-
-	var repository model.URLRepository
-	if cfg.RepositoryType.DataBaseRepository {
-		postgresPool := db.NewPostgresPool(cfg.DataBaseDSN, logger)
-		migrations := db.NewMigrations(cfg.DataBaseDSN, logger)
-		migrations.MigrateUp()
-		repository = db.NewPostgresURLRepository(postgresPool, logger)
-		logger.Info("Connected to database", zap.String("DSN", cfg.DataBaseDSN))
-	} else if cfg.RepositoryType.FileRepository {
-		repository = file.NewFileURLRepository(cfg.FileStoragePath, logger)
-		logger.Info("Connected/created file", zap.String("FilePath", cfg.FileStoragePath))
-	} else {
-		repository = memory.NewURLRepository(logger)
-		logger.Info("Using memory storage")
-	}
+	repository := initRepository(&cfg, logger)
 	urlService := service.NewURLService(repository, logger)
-	
 
 	e := echo.New()
-
-	handlers.New(e, urlService, cfg.URLPrefix, logger)
-
+	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, logger)
 	e.Logger.Fatal(e.Start(cfg.URLServer))
+}
+
+func initRepository(cfg *config.Config, logger *zap.Logger) model.URLRepository {
+	switch cfg.RepositoryType {
+	case config.DataBaseRepository:
+		postgresPool, err := db.NewPostgresPool(cfg.DataBaseDSN, logger)
+		if err != nil {
+			logger.Fatal("Unable to connect to database", zap.Error(err))
+		}
+
+		migrations, err := db.NewMigrations(cfg.DataBaseDSN, logger)
+		if err != nil {
+			logger.Fatal("Unable to create migrations", zap.Error(err))
+		}
+
+		err = migrations.MigrateUp()
+		if err != nil {
+			logger.Fatal("Unable to up migrations", zap.Error(err))
+		}
+
+		logger.Info("Connected to database", zap.String("DSN", cfg.DataBaseDSN))
+		return db.NewPostgresURLRepository(postgresPool, logger)
+
+	case config.FileRepository:
+		repository, err := file.NewFileURLRepository(cfg.FileStoragePath, logger)
+		if err != nil {
+			logger.Fatal("Unable to create file repository", zap.Error(err))
+		}
+
+		logger.Info("Connected/created file", zap.String("FilePath", cfg.FileStoragePath))
+		return repository
+
+	default:
+		logger.Info("Using memory storage")
+		return memory.NewURLRepository(logger)
+	}
 }

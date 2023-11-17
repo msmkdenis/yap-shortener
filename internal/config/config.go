@@ -5,19 +5,21 @@ import (
 	"os"
 )
 
+type Repository uint
+
+const(
+	DataBaseRepository Repository = iota + 1
+	FileRepository
+	MemoryRepostiory
+)
+
 type Config struct {
 	URLServer          string
 	URLPrefix          string
 	FileStoragePath    string
 	DataBaseDSN        string
-	RepositoryType     *RepositoryType
+	RepositoryType     Repository
 
-}
-
-type RepositoryType struct {
-	DataBaseRepository bool
-	FileRepository     bool
-	MemoryRepostiory   bool
 }
 
 func NewConfig() *Config {
@@ -30,7 +32,7 @@ func NewConfig() *Config {
 	config.parseFlags()
 	config.parseEnv()
 
-	config.RepositoryType = config.newStorageType()
+	config.RepositoryType = config.newRepositoryType()
 
 	return &config
 }
@@ -75,18 +77,12 @@ func (c *Config) parseEnv() {
 	}
 }
 
-func (c *Config) newStorageType() *RepositoryType {
+func (c *Config) newRepositoryType() Repository {
 	if c.DataBaseDSN != "" {
-		return &RepositoryType{
-			DataBaseRepository: true,
-		}
+		return DataBaseRepository
 	}
 	if c.FileStoragePath != "" {
-		return &RepositoryType{
-			FileRepository: true,
-		}
+		return FileRepository
 	}
-	return &RepositoryType{
-		MemoryRepostiory: true,
-	}
+	return MemoryRepostiory
 }

@@ -5,10 +5,10 @@
 package mock
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	echo "github.com/labstack/echo/v4"
 	dto "github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 	model "github.com/msmkdenis/yap-shortener/internal/model"
 )
@@ -37,7 +37,7 @@ func (m *MockURLService) EXPECT() *MockURLServiceMockRecorder {
 }
 
 // Add mocks base method.
-func (m *MockURLService) Add(arg0 echo.Context, arg1, arg2 string) (*model.URL, error) {
+func (m *MockURLService) Add(arg0 context.Context, arg1, arg2 string) (*model.URL, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Add", arg0, arg1, arg2)
 	ret0, _ := ret[0].(*model.URL)
@@ -52,7 +52,7 @@ func (mr *MockURLServiceMockRecorder) Add(arg0, arg1, arg2 interface{}) *gomock.
 }
 
 // AddAll mocks base method.
-func (m *MockURLService) AddAll(arg0 echo.Context, arg1 []dto.URLBatchRequestType, arg2 string) ([]dto.URLBatchResponseType, error) {
+func (m *MockURLService) AddAll(arg0 context.Context, arg1 []dto.URLBatchRequestType, arg2 string) ([]dto.URLBatchResponseType, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "AddAll", arg0, arg1, arg2)
 	ret0, _ := ret[0].([]dto.URLBatchResponseType)
@@ -67,7 +67,7 @@ func (mr *MockURLServiceMockRecorder) AddAll(arg0, arg1, arg2 interface{}) *gomo
 }
 
 // DeleteAll mocks base method.
-func (m *MockURLService) DeleteAll(arg0 echo.Context) error {
+func (m *MockURLService) DeleteAll(arg0 context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteAll", arg0)
 	ret0, _ := ret[0].(error)
@@ -81,7 +81,7 @@ func (mr *MockURLServiceMockRecorder) DeleteAll(arg0 interface{}) *gomock.Call {
 }
 
 // GetAll mocks base method.
-func (m *MockURLService) GetAll(arg0 echo.Context) ([]string, error) {
+func (m *MockURLService) GetAll(arg0 context.Context) ([]string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAll", arg0)
 	ret0, _ := ret[0].([]string)
@@ -96,7 +96,7 @@ func (mr *MockURLServiceMockRecorder) GetAll(arg0 interface{}) *gomock.Call {
 }
 
 // GetByyID mocks base method.
-func (m *MockURLService) GetByyID(arg0 echo.Context, arg1 string) (string, error) {
+func (m *MockURLService) GetByyID(arg0 context.Context, arg1 string) (string, error) {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetByyID", arg0, arg1)
 	ret0, _ := ret[0].(string)
@@ -111,7 +111,7 @@ func (mr *MockURLServiceMockRecorder) GetByyID(arg0, arg1 interface{}) *gomock.C
 }
 
 // Ping mocks base method.
-func (m *MockURLService) Ping(arg0 echo.Context) error {
+func (m *MockURLService) Ping(arg0 context.Context) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "Ping", arg0)
 	ret0, _ := ret[0].(error)

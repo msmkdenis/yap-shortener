@@ -9,6 +9,8 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/msmkdenis/yap-shortener/internal/apperrors"
+	"github.com/msmkdenis/yap-shortener/internal/utils"
 	"go.uber.org/zap"
 )
 
@@ -20,37 +22,40 @@ type Migrations struct {
 	logger     *zap.Logger
 }
 
-func NewMigrations(connection string, logger *zap.Logger) *Migrations {
+func NewMigrations(connection string, logger *zap.Logger) (*Migrations, error) {
 	dbConfig, err := pgxpool.ParseConfig(connection)
 	if err != nil {
-		logger.Fatal("Unable to parse connection string", zap.Error(err))
+		return nil, apperrors.NewValueError("Unable to parse connection string", utils.Caller(), err)
 	}
+
 	logger.Info(fmt.Sprintf("Connection %s", connection))
 
 	dbURL := dbURL(dbConfig, sslMode(connection))
 
 	driver, err := iofs.New(migrationsFS, "migration")
 	if err != nil {
-		logger.Fatal("Unable to create iofs driver", zap.Error(err))
+		return nil, apperrors.NewValueError("Unable to create iofs driver", utils.Caller(), err)
 	}
+
 	logger.Info(fmt.Sprintf("Connection to database %s", dbURL))
 
 	migrations, err := migrate.NewWithSourceInstance("iofs", driver, dbURL)
 	if err != nil {
-		logger.Fatal("Unable to create new migrations", zap.Error(err))
+		return nil, apperrors.NewValueError("Unable to create new migrations", utils.Caller(), err)
 	}
 
 	return &Migrations{
 		migrations: migrations,
 		logger:     logger,
-	}
+	}, nil
 }
 
-func (m *Migrations) MigrateUp() {
+func (m *Migrations) MigrateUp() error {
 	err := m.migrations.Up()
 	if err != nil && err.Error() != "no change" {
-		m.logger.Fatal("Unable to up migrations", zap.Error(err))
+		return apperrors.NewValueError("Unable to up migrations", utils.Caller(), err)
 	}
+	return nil
 }
 
 func dbURL(config *pgxpool.Config, sslMode string) string {

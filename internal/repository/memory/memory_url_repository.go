@@ -1,9 +1,9 @@
 package memory
 
 import (
+	"context"
 	"sync"
 
-	"github.com/labstack/echo/v4"
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 
@@ -25,7 +25,7 @@ func NewURLRepository(logger *zap.Logger) *MemoryURLRepository {
 	}
 }
 
-func (r *MemoryURLRepository) Insert(c echo.Context, u model.URL) (*model.URL, error) {
+func (r *MemoryURLRepository) Insert(ctx context.Context, u model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -35,7 +35,7 @@ func (r *MemoryURLRepository) Insert(c echo.Context, u model.URL) (*model.URL, e
 	return &url, nil
 }
 
-func (r *MemoryURLRepository) SelectByID(c echo.Context, key string) (*model.URL, error) {
+func (r *MemoryURLRepository) SelectByID(ctx context.Context, key string) (*model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -47,7 +47,7 @@ func (r *MemoryURLRepository) SelectByID(c echo.Context, key string) (*model.URL
 	return &url, nil
 }
 
-func (r *MemoryURLRepository) SelectAll(c echo.Context) ([]model.URL, error) {
+func (r *MemoryURLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
@@ -59,7 +59,7 @@ func (r *MemoryURLRepository) SelectAll(c echo.Context) ([]model.URL, error) {
 	return values, nil
 }
 
-func (r *MemoryURLRepository) DeleteAll(c echo.Context) error {
+func (r *MemoryURLRepository) DeleteAll(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
@@ -67,7 +67,7 @@ func (r *MemoryURLRepository) DeleteAll(c echo.Context) error {
 	return nil
 }
 
-func (r *MemoryURLRepository) Ping(c echo.Context) error {
+func (r *MemoryURLRepository) Ping(ctx context.Context) error {
 	if r.storage == nil {
 		return apperrors.NewValueError("storage is not initialized", utils.Caller(), apperrors.ErrURLNotFound)
 	}
@@ -75,7 +75,7 @@ func (r *MemoryURLRepository) Ping(c echo.Context) error {
 	return nil
 }
 
-func (r *MemoryURLRepository) InsertAllOrUpdate(c echo.Context, urls []model.URL) ([]model.URL, error) {
+func (r *MemoryURLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL) ([]model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 

@@ -1,7 +1,7 @@
 package model
 
 import (
-	"github.com/labstack/echo/v4"
+	"context"
 )
 
 type URL struct {
@@ -12,10 +12,10 @@ type URL struct {
 }
 
 type URLRepository interface {
-	Insert(c echo.Context, u URL) (*URL, error)
-	InsertAllOrUpdate(c echo.Context, urls []URL) ([]URL, error)
-	SelectByID(c echo.Context, key string) (*URL, error)
-	SelectAll(c echo.Context) ([]URL, error)
-	DeleteAll(c echo.Context) error
-	Ping(c echo.Context) error
+	Insert(ctx context.Context, u URL) (*URL, error)
+	InsertAllOrUpdate(ctx context.Context, urls []URL) ([]URL, error)
+	SelectByID(ctx context.Context, key string) (*URL, error)
+	SelectAll(ctx context.Context) ([]URL, error)
+	DeleteAll(ctx context.Context) error
+	Ping(ctx context.Context) error
 }
