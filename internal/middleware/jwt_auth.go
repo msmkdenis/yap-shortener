@@ -10,13 +10,13 @@ import (
 
 type JWTAuth struct {
 	jwtManager *utils.JWTManager
-	logger *zap.Logger
+	logger     *zap.Logger
 }
 
 func InitJWTAuth(jwtManager *utils.JWTManager, logger *zap.Logger) *JWTAuth {
 	j := &JWTAuth{
 		jwtManager: jwtManager,
-		logger: logger,
+		logger:     logger,
 	}
 	return j
 }
@@ -24,17 +24,17 @@ func InitJWTAuth(jwtManager *utils.JWTManager, logger *zap.Logger) *JWTAuth {
 func (j *JWTAuth) JWTAuth() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-				cookie, er := c.Request().Cookie(j.jwtManager.TokenName)
-				if er != nil {
-					return c.NoContent(http.StatusUnauthorized)
-				}
-				userID, err := j.jwtManager.GetUserId(cookie.Value)
-				if err != nil {
-					return c.NoContent(http.StatusUnauthorized)
-				}
-				c.Set("userID", userID)
-				err = next(c)
-				return err
+			cookie, er := c.Request().Cookie(j.jwtManager.TokenName)
+			if er != nil {
+				return c.NoContent(http.StatusUnauthorized)
+			}
+			userID, err := j.jwtManager.GetUserID(cookie.Value)
+			if err != nil {
+				return c.NoContent(http.StatusUnauthorized)
+			}
+			c.Set("userID", userID)
+			err = next(c)
+			return err
 		}
 	}
 }

@@ -10,13 +10,13 @@ import (
 
 type JWTCheckerCreator struct {
 	jwtManager *utils.JWTManager
-	logger *zap.Logger
+	logger     *zap.Logger
 }
 
 func InitJWTCheckerCreator(jwtManager *utils.JWTManager, logger *zap.Logger) *JWTCheckerCreator {
 	j := &JWTCheckerCreator{
 		jwtManager: jwtManager,
-		logger: logger,
+		logger:     logger,
 	}
 	return j
 }
@@ -28,17 +28,17 @@ func (j *JWTCheckerCreator) JWTManager() echo.MiddlewareFunc {
 			if er != nil {
 				j.logger.Warn("token not found, creating new token", zap.Error(er))
 				token := j.setCookieAndReturn(c)
-				userID, _ := j.jwtManager.GetUserId(token)
+				userID, _ := j.jwtManager.GetUserID(token)
 				c.Set("userID", userID)
 				err := next(c)
 				return err
 			}
 
-			userID, err := j.jwtManager.GetUserId(cookie.Value)
+			userID, err := j.jwtManager.GetUserID(cookie.Value)
 			if err != nil {
 				j.logger.Warn("unable to parse UserID, creating new token", zap.Error(err))
 				token := j.setCookieAndReturn(c)
-				userID, _ := j.jwtManager.GetUserId(token)
+				userID, _ := j.jwtManager.GetUserID(token)
 				c.Set("userID", userID)
 				err := next(c)
 				return err

@@ -12,13 +12,13 @@ import (
 )
 
 type JWTManager struct {
-	logger *zap.Logger
+	logger    *zap.Logger
 	TokenName string
 }
 
-const TOKEN_EXP = time.Hour * 24
-const SECRET_KEY = "supersecretkey"
-const TOKEN_NAME = "token"
+const token_exp = time.Hour * 24
+const secret_key = "supersecretkey"
+const token_name = "token"
 
 type claims struct {
 	jwt.RegisteredClaims
@@ -27,8 +27,8 @@ type claims struct {
 
 func InitJWTManager(logger *zap.Logger) *JWTManager {
 	j := &JWTManager{
-		logger: logger,
-		TokenName: TOKEN_NAME,
+		logger:    logger,
+		TokenName: token_name,
 	}
 	return j
 }
@@ -38,7 +38,7 @@ func (j *JWTManager) BuildJWTString() (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			// когда создан токен
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(TOKEN_EXP)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(token_exp)),
 		},
 
 		// собственное утверждение
@@ -46,7 +46,7 @@ func (j *JWTManager) BuildJWTString() (string, error) {
 	})
 
 	// создаём строку токена
-	tokenString, err := token.SignedString([]byte(SECRET_KEY))
+	tokenString, err := token.SignedString([]byte(secret_key))
 	if err != nil {
 		return "", err
 	}
@@ -55,14 +55,14 @@ func (j *JWTManager) BuildJWTString() (string, error) {
 	return tokenString, nil
 }
 
-func (j *JWTManager) GetUserId(tokenString string) (string, error) {
+func (j *JWTManager) GetUserID(tokenString string) (string, error) {
 	claims := &claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, apperrors.NewValueError(fmt.Sprintf("unexpected signing method: %v", t.Header["alg"]), Caller(), errors.New("unexpected signing method"))
 			}
-			return []byte(SECRET_KEY), nil
+			return []byte(secret_key), nil
 		})
 	if err != nil {
 		return "", err
@@ -75,4 +75,3 @@ func (j *JWTManager) GetUserId(tokenString string) (string, error) {
 
 	return claims.UserID, nil
 }
-
