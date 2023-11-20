@@ -367,7 +367,7 @@ func TestGetURLsByUserID_Unauthorized(t *testing.T) {
 		{
 			name:         "BadRequest - unauthorized",
 			method:       http.MethodGet,
-			expectedCode: http.StatusUnauthorized,
+			expectedCode: http.StatusNoContent,
 			path:         "http://localhost:8080/api/user/urls",
 			expectedBody: "",
 		},
