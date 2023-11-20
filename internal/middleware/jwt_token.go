@@ -21,7 +21,7 @@ func InitJWTCheckerCreator(jwtManager *utils.JWTManager, logger *zap.Logger) *JW
 	return j
 }
 
-func (j *JWTCheckerCreator) JWTManager() echo.MiddlewareFunc {
+func (j *JWTCheckerCreator) JWTCheckOrCreate() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			cookie, er := c.Request().Cookie(j.jwtManager.TokenName)

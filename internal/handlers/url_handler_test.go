@@ -352,7 +352,7 @@ func TestGetURLsByUserID_Unauthorized(t *testing.T) {
 
 	e.Use(requestLogger.RequestLogger())
 	e.Use(jwtAuth.JWTAuth())
-	e.Use(jwtCheckerCreator.JWTManager())
+	e.Use(jwtCheckerCreator.JWTCheckOrCreate())
 
 	//s.EXPECT().GetAllByUserID(gomock.Any(), gomock.Any()).Return("", apperrors.ErrURLNotFound)
 

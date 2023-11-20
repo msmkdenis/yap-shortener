@@ -52,7 +52,7 @@ func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, jwtManage
 	e.Use(middleware.Compress())
 	e.Use(middleware.Decompress())
 
-	public := e.Group("/", jwtCheckerCreator.JWTManager(), jwtCheckerCreator.JWTManager())
+	public := e.Group("/", jwtCheckerCreator.JWTCheckOrCreate())
 	public.POST("api/shorten", handler.AddShorten)
 	public.POST("", handler.AddURL)
 	public.POST("api/shorten/batch", handler.AddBatch)

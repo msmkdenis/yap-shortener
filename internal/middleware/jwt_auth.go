@@ -26,12 +26,12 @@ func (j *JWTAuth) JWTAuth() echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			cookie, er := c.Request().Cookie(j.jwtManager.TokenName)
 			if er != nil {
-				j.logger.Info("authentication failed", zap.Error(er))
+				j.logger.Info("authentification failed", zap.Error(er))
 				return c.NoContent(http.StatusUnauthorized)
 			}
 			userID, err := j.jwtManager.GetUserID(cookie.Value)
 			if err != nil {
-				j.logger.Info("authentication failed", zap.Error(er))
+				j.logger.Info("authentification failed", zap.Error(er))
 				return c.NoContent(http.StatusUnauthorized)
 			}
 			c.Set("userID", userID)
