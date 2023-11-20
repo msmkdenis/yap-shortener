@@ -55,6 +55,42 @@ func NewFileURLRepository(path string, logger *zap.Logger) (*FileURLRepository, 
 	}, nil
 }
 
+func (r *FileURLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	file, err := os.OpenFile(r.fileStorage.Name(), os.O_RDONLY, perm)
+	if err != nil {
+		return nil, apperrors.NewValueError("unable to open file", utils.Caller(), err)
+	}
+
+	decoder := json.NewDecoder(file)
+	defer file.Close()
+
+	urls := make([]model.URL, 0)
+
+	for {
+		var url model.URL
+		err := decoder.Decode(&url)
+		if err == io.EOF {
+			r.logger.Info("Reached end of file while decoding", zap.Error(err))
+			break
+		}
+		if err != nil {
+			return nil, apperrors.NewValueError("unable to decode from file", utils.Caller(), err)
+		}
+		if url.UserID == userID {
+			urls = append(urls, url)
+		}
+	}
+
+	if len(urls) == 0 {
+		return nil, apperrors.NewValueError(fmt.Sprintf("urls not found by user %s", userID) , utils.Caller(), apperrors.ErrURLNotFound)
+	}
+
+	return urls, nil
+}
+
 func (r *FileURLRepository) Insert(ctx context.Context, url model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -11,7 +12,7 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 	"github.com/msmkdenis/yap-shortener/internal/middleware"
-	"github.com/msmkdenis/yap-shortener/internal/service"
+	"github.com/msmkdenis/yap-shortener/internal/model"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 	"go.uber.org/zap"
 
@@ -19,35 +20,69 @@ import (
 )
 
 type URLHandler struct {
-	urlService service.URLService
+	urlService URLService
 	urlPrefix  string
+	jwtManager *utils.JWTManager
 	logger     *zap.Logger
 }
 
-func NewURLHandler(e *echo.Echo, service service.URLService, urlPrefix string, logger *zap.Logger) *URLHandler {
+type URLService interface {
+	Add(ctx context.Context, s string, host string, userID string) (*model.URL, error)
+	AddAll(ctx context.Context, urls []dto.URLBatchRequest, host string, userID string) ([]dto.URLBatchResponse, error)
+	GetAll(ctx context.Context) ([]string, error)
+	GetAllByUserID(ctx context.Context, userID string) ([]dto.URLBatchResponseByUserID, error)
+	DeleteAll(ctx context.Context) error
+	GetByyID(ctx context.Context, key string) (string, error)
+	Ping(ctx context.Context) error
+}
+
+func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, jwtManager *utils.JWTManager, logger *zap.Logger) *URLHandler {
 	handler := &URLHandler{
 		urlService: service,
 		urlPrefix:  urlPrefix,
+		jwtManager: jwtManager,
 		logger:     logger,
 	}
 
 	requestLogger := middleware.InitRequestLogger(logger)
+	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
+	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
 
 	e.Use(requestLogger.RequestLogger())
 	e.Use(middleware.Compress())
 	e.Use(middleware.Decompress())
 
-	e.POST("/api/shorten", handler.AddShorten)
-	e.POST("/", handler.AddURL)
-	e.POST("/api/shorten/batch", handler.AddBatch)
+	public := e.Group("/", jwtCheckerCreator.JWTManager(), jwtCheckerCreator.JWTManager())
+	public.POST("api/shorten", handler.AddShorten)
+	public.POST("", handler.AddURL)
+	public.POST("api/shorten/batch", handler.AddBatch)
 
-	e.GET("/*", handler.FindURL)
-	e.GET("/", handler.FindAll)
-	e.GET("/ping", handler.Ping)
+	public.GET("*", handler.FindURL)
+	public.GET("", handler.FindAll)
+	public.GET("ping", handler.Ping)
 
-	e.DELETE("/", handler.ClearAll)
+	public.DELETE("", handler.ClearAll)
+
+	protected := e.Group("/api/user", jwtAuth.JWTAuth())
+	protected.GET("/urls", handler.FindAllURLByUserID)
 
 	return handler
+}
+
+func (h *URLHandler) FindAllURLByUserID(c echo.Context) error {
+	userID := c.Get("userID").(string)
+	savedURLs, err := h.urlService.GetAllByUserID(c.Request().Context(), userID)
+	if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
+	}
+
+	if errors.Is(err, apperrors.ErrURLNotFound) {
+		h.logger.Warn("StatusNoContent: urls not found", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.NoContent(http.StatusNoContent)
+	}
+
+	return c.JSON(http.StatusOK, savedURLs)
 }
 
 func (h *URLHandler) AddBatch(c echo.Context) error {
@@ -64,7 +99,7 @@ func (h *URLHandler) AddBatch(c echo.Context) error {
 		return c.String(http.StatusBadRequest, fmt.Sprintf("Error: Unknown error, unable to read request %s", err))
 	}
 
-	var urlBatchRequest []dto.URLBatchRequestType
+	var urlBatchRequest []dto.URLBatchRequest
 	err = json.Unmarshal([]byte(body), &urlBatchRequest)
 	if err != nil {
 		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
@@ -76,7 +111,8 @@ func (h *URLHandler) AddBatch(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: empty batch request")
 	}
 
-	savedURLs, err := h.urlService.AddAll(c.Request().Context(), urlBatchRequest, h.urlPrefix)
+	userID := c.Get("userID").(string)
+	savedURLs, err := h.urlService.AddAll(c.Request().Context(), urlBatchRequest, h.urlPrefix, userID)
 	if err != nil {
 		h.logger.Error("StatusInternalServerError: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
@@ -99,7 +135,7 @@ func (h *URLHandler) AddShorten(c echo.Context) error {
 		return c.String(http.StatusBadRequest, fmt.Sprintf("Error: Unknown error, unable to read request %s", err))
 	}
 
-	var urlRequest dto.URLRequestType
+	var urlRequest dto.URLRequest
 	err = json.Unmarshal(body, &urlRequest)
 	if err != nil {
 		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
@@ -111,13 +147,14 @@ func (h *URLHandler) AddShorten(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	url, err := h.urlService.Add(c.Request().Context(), urlRequest.URL, h.urlPrefix)
+	userID := c.Get("userID").(string)
+	url, err := h.urlService.Add(c.Request().Context(), urlRequest.URL, h.urlPrefix, userID)
 	if err != nil && !errors.Is(err, apperrors.ErrURLAlreadyExists) {
 		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
 
-	response := &dto.URLResponseType{
+	response := &dto.URLResponse{
 		Result: url.Shortened,
 	}
 
@@ -141,7 +178,8 @@ func (h *URLHandler) AddURL(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	url, err := h.urlService.Add(c.Request().Context(), string(body), h.urlPrefix)
+	userID := c.Get("userID").(string)
+	url, err := h.urlService.Add(c.Request().Context(), string(body), h.urlPrefix, userID)
 	if err != nil && !errors.Is(err, apperrors.ErrURLAlreadyExists) {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))

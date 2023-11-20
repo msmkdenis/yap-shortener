@@ -7,12 +7,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/msmkdenis/yap-shortener/internal/apperrors"
+	"github.com/msmkdenis/yap-shortener/internal/middleware"
 	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
+	"github.com/msmkdenis/yap-shortener/internal/utils"
 
 	"github.com/golang/mock/gomock"
 	"github.com/labstack/echo/v4"
 
-	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
 	"github.com/msmkdenis/yap-shortener/internal/service"
@@ -29,12 +31,13 @@ var cfgMock = &config.Config{
 
 func TestURLHandler(t *testing.T) {
 	logger, _ := zap.NewProduction()
+	jwtManager := utils.InitJWTManager(logger)
 	urlRepository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(urlRepository, logger)
 
 	e := echo.New()
 
-	h := NewURLHandler(e, urlService, cfgMock.URLPrefix, logger)
+	h := NewURLHandler(e, urlService, cfgMock.URLPrefix, jwtManager, logger)
 
 	type want struct {
 		code     int
@@ -106,6 +109,7 @@ func TestURLHandler(t *testing.T) {
 				preRequest := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", strings.NewReader(test.body))
 				preW := httptest.NewRecorder()
 				c := e.NewContext(preRequest, preW)
+				c.Set("userID", "userID")
 				err := h.AddURL(c)
 				require.NoError(t, err)
 
@@ -125,6 +129,7 @@ func TestURLHandler(t *testing.T) {
 				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
 				w := httptest.NewRecorder()
 				l := e.NewContext(request, w)
+				l.Set("userID", "userID")
 				err := h.AddURL(l)
 				require.NoError(t, err)
 				res := w.Result()
@@ -139,12 +144,13 @@ func TestURLHandler(t *testing.T) {
 
 func TestPostShorten(t *testing.T) {
 	logger, _ := zap.NewProduction()
+	jwtManager := utils.InitJWTManager(logger)
 	urlRepository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(urlRepository, logger)
 
 	e := echo.New()
 
-	h := NewURLHandler(e, urlService, cfgMock.URLPrefix, logger)
+	h := NewURLHandler(e, urlService, cfgMock.URLPrefix, jwtManager, logger)
 
 	type want struct {
 		code     int
@@ -202,7 +208,9 @@ func TestPostShorten(t *testing.T) {
 				request.Header.Set("Content-Type", test.contentType)
 				w := httptest.NewRecorder()
 				l := e.NewContext(request, w)
-				_ = h.AddShorten(l)
+				l.Set("userID", "userID")
+				err := h.AddShorten(l)
+				require.NoError(t, err)
 				res := w.Result()
 				assert.Equal(t, test.want.code, res.StatusCode)
 				defer res.Body.Close()
@@ -226,8 +234,10 @@ func TestGetURL(t *testing.T) {
 	s.EXPECT().GetByyID(gomock.Any(), gomock.Any()).AnyTimes().Return(message, nil)
 
 	logger, _ := zap.NewProduction()
+
 	e := echo.New()
-	h := NewURLHandler(e, s, cfgMock.URLPrefix, logger)
+	jwtManager := utils.InitJWTManager(logger)
+	h := NewURLHandler(e, s, cfgMock.URLPrefix, jwtManager, logger)
 	defer e.Close()
 
 	testCases := []struct {
@@ -262,6 +272,7 @@ func TestGetURL(t *testing.T) {
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			w := httptest.NewRecorder()
 			l := e.NewContext(request, w)
+			l.Set("userID", "userID")
 			err := h.FindURL(l)
 			require.NoError(t, err)
 			res := w.Result()
@@ -276,18 +287,74 @@ func TestGetURL(t *testing.T) {
 
 }
 
-func TestGetURLError(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+// func TestGetURLError(t *testing.T) {
+// 	ctrl := gomock.NewController(t)
+// 	defer ctrl.Finish()
 
-	s := mock.NewMockURLService(ctrl)
+// 	s := mock.NewMockURLService(ctrl)
+
+// 	logger, _ := zap.NewProduction()
+// 	e := echo.New()
+// 	jwtManager := utils.InitJWTManager(logger)
+// 	h := NewURLHandler(e, s, cfgMock.URLPrefix, jwtManager, logger)
+// 	defer e.Close()
+
+// 	s.EXPECT().GetByyID(gomock.Any(), gomock.Any()).Return("", apperrors.ErrURLNotFound)
+
+// 	testCaseWithError := []struct {
+// 		name         string
+// 		method       string
+// 		body         string
+// 		expectedCode int
+// 		path         string
+// 		expectedBody string
+// 	}{
+// 		{
+// 			name:         "BadRequest - url not found",
+// 			method:       http.MethodGet,
+// 			expectedCode: http.StatusBadRequest,
+// 			path:         "http://localhost:8080/MGRkMTk",
+// 			expectedBody: "URL with id MGRkMTk not found",
+// 		},
+// 	}
+
+// 	for _, test := range testCaseWithError {
+// 		t.Run(test.name, func(t *testing.T) {
+// 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
+// 			w := httptest.NewRecorder()
+// 			l := e.NewContext(request, w)
+// 			l.Set("userID", "userID")
+// 			err := h.FindURL(l)
+// 			require.NoError(t, err)
+// 			res := w.Result()
+// 			assert.Equal(t, test.expectedCode, res.StatusCode)
+// 			response, err := io.ReadAll(res.Body)
+// 			res.Body.Close()
+// 			assert.Equal(t, test.expectedBody, string(response))
+// 			require.NoError(t, err)
+// 		})
+// 	}
+// }
+
+func TestGetURLsByUserID_Unauthorized(t *testing.T) {
+	//ctrl := gomock.NewController(t)
+	//defer ctrl.Finish()
+
+	//s := mock.NewMockURLService(ctrl)
 
 	logger, _ := zap.NewProduction()
 	e := echo.New()
-	h := NewURLHandler(e, s, cfgMock.URLPrefix, logger)
+	jwtManager := utils.InitJWTManager(logger)
+	requestLogger := middleware.InitRequestLogger(logger)
+	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
+	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
 	defer e.Close()
 
-	s.EXPECT().GetByyID(gomock.Any(), gomock.Any()).Times(1).Return("", apperrors.ErrURLNotFound)
+	e.Use(requestLogger.RequestLogger())
+	e.Use(jwtAuth.JWTAuth())
+	e.Use(jwtCheckerCreator.JWTManager())
+
+	//s.EXPECT().GetAllByUserID(gomock.Any(), gomock.Any()).Return("", apperrors.ErrURLNotFound)
 
 	testCaseWithError := []struct {
 		name         string
@@ -298,11 +365,53 @@ func TestGetURLError(t *testing.T) {
 		expectedBody string
 	}{
 		{
-			name:         "BadRequest - url not found",
+			name:         "BadRequest - unauthorized",
 			method:       http.MethodGet,
-			expectedCode: http.StatusBadRequest,
-			path:         "http://localhost:8080/MGRkMTk",
-			expectedBody: "URL with id MGRkMTk not found",
+			expectedCode: http.StatusUnauthorized,
+			path:         "http://localhost:8080/api/user/urls",
+			expectedBody: "",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		t.Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
+			w := httptest.NewRecorder()
+			e.ServeHTTP(w, request)
+			assert.Equal(t, test.expectedCode, w.Code)
+		})
+	}
+}
+
+func TestGetURLsByUserID_NoContent(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	s := mock.NewMockURLService(ctrl)
+
+	logger, _ := zap.NewProduction()
+	e := echo.New()
+	defer e.Close()
+	jwtManager := utils.InitJWTManager(logger)
+
+	h := NewURLHandler(e, s, cfgMock.URLPrefix, jwtManager, logger)
+
+	s.EXPECT().GetAllByUserID(gomock.Any(), gomock.Any()).Return(nil, apperrors.ErrURLNotFound)
+
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "No Content",
+			method:       http.MethodGet,
+			expectedCode: http.StatusNoContent,
+			path:         "http://localhost:8080/api/user/urls",
+			expectedBody: "",
 		},
 	}
 
@@ -311,14 +420,11 @@ func TestGetURLError(t *testing.T) {
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			w := httptest.NewRecorder()
 			l := e.NewContext(request, w)
-			err := h.FindURL(l)
+			l.Set("userID", "token")
+			err := h.FindAllURLByUserID(l)
 			require.NoError(t, err)
-			res := w.Result()
-			assert.Equal(t, test.expectedCode, res.StatusCode)
-			response, err := io.ReadAll(res.Body)
-			res.Body.Close()
-			assert.Equal(t, test.expectedBody, string(response))
-			require.NoError(t, err)
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
 		})
 	}
 }

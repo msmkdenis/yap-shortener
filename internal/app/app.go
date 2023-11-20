@@ -4,7 +4,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/handlers"
-	"github.com/msmkdenis/yap-shortener/internal/model"
+	"github.com/msmkdenis/yap-shortener/internal/utils"
 
 	"github.com/msmkdenis/yap-shortener/internal/repository/db"
 	"github.com/msmkdenis/yap-shortener/internal/repository/file"
@@ -16,15 +16,16 @@ import (
 func URLShortenerRun() {
 	cfg := *config.NewConfig()
 	logger, _ := zap.NewProduction()
+	jwtManager := utils.InitJWTManager(logger)
 	repository := initRepository(&cfg, logger)
 	urlService := service.NewURLService(repository, logger)
 
 	e := echo.New()
-	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, logger)
+	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger)
 	e.Logger.Fatal(e.Start(cfg.URLServer))
 }
 
-func initRepository(cfg *config.Config, logger *zap.Logger) model.URLRepository {
+func initRepository(cfg *config.Config, logger *zap.Logger) service.URLRepository {
 	switch cfg.RepositoryType {
 	case config.DataBaseRepository:
 		postgresPool, err := db.NewPostgresPool(cfg.DataBaseDSN, logger)

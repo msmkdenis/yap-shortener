@@ -2,6 +2,7 @@ package memory
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
@@ -23,6 +24,24 @@ func NewURLRepository(logger *zap.Logger) *MemoryURLRepository {
 		logger:  logger,
 		mu:      sync.RWMutex{},
 	}
+}
+
+func (r *MemoryURLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	urls := make([]model.URL, 0)
+	for _, url := range r.storage {
+		if url.UserID == userID {
+			urls = append(urls, url)
+		}
+	}
+
+	if len(urls) == 0 {
+		return nil, apperrors.NewValueError(fmt.Sprintf("urls not found by user %s", userID) , utils.Caller(), apperrors.ErrURLNotFound)
+	}
+
+	return urls, nil
 }
 
 func (r *MemoryURLRepository) Insert(ctx context.Context, u model.URL) (*model.URL, error) {

@@ -4,6 +4,7 @@ import (
 	"context"
 	_ "embed"
 	"errors"
+	"fmt"
 	"regexp"
 
 	"github.com/google/uuid"
@@ -25,6 +26,9 @@ var selectURLByID string
 //go:embed queries/select_all_urls.sql
 var selectAllURLs string
 
+//go:embed queries/select_all_urls_by_userid.sql
+var selectAllURLsByUserID string
+
 //go:embed queries/delete_all_urls.sql
 var deleteAllURLs string
 
@@ -44,10 +48,29 @@ func (r *PostgresURLRepository) Ping(ctx context.Context) error {
 	return r.PostgresPool.db.Ping(ctx)
 }
 
+func (r *PostgresURLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {
+	queryRows, err := r.PostgresPool.db.Query(ctx, selectAllURLsByUserID, userID)
+	if err != nil {
+		return nil, apperrors.NewValueError("query failed", utils.Caller(), err)
+	}
+	defer queryRows.Close()
+
+	urls, err := pgx.CollectRows(queryRows, pgx.RowToStructByPos[model.URL])
+	if err != nil {
+		return nil, apperrors.NewValueError("unable to collect rows", utils.Caller(), err)
+	}
+
+	if len(urls) == 0 {
+		return nil, apperrors.NewValueError(fmt.Sprintf("urls not found by user %s", userID) , utils.Caller(), apperrors.ErrURLNotFound)
+	}
+
+	return urls, nil
+}
+
 func (r *PostgresURLRepository) Insert(ctx context.Context, url model.URL) (*model.URL, error) {
 	var savedURL model.URL
 	err := r.PostgresPool.db.QueryRow(ctx, insertURLAndReturn,
-		url.ID, url.Original, url.Shortened).Scan(&savedURL.ID, &savedURL.Original, &savedURL.Shortened)
+		url.ID, url.Original, url.Shortened, url.UserID).Scan(&savedURL.ID, &savedURL.Original, &savedURL.Shortened, &savedURL.UserID)
 
 	if err != nil {
 		return nil, apperrors.NewValueError("query failed", utils.Caller(), err)
@@ -58,7 +81,7 @@ func (r *PostgresURLRepository) Insert(ctx context.Context, url model.URL) (*mod
 
 func (r *PostgresURLRepository) SelectByID(ctx context.Context, key string) (*model.URL, error) {
 	var url model.URL
-	err := r.PostgresPool.db.QueryRow(ctx, selectURLByID, key).Scan(&url.ID, &url.Original, &url.Shortened, &url.CorrelationID)
+	err := r.PostgresPool.db.QueryRow(ctx, selectURLByID, key).Scan(&url.ID, &url.Original, &url.Shortened, &url.CorrelationID, &url.UserID)
 
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
@@ -106,7 +129,7 @@ func (r *PostgresURLRepository) InsertAllOrUpdate(ctx context.Context, urls []mo
 
 	rows := make([][]interface{}, len(urls))
 	for i, url := range urls {
-		row := []interface{}{url.ID, url.Original, url.Shortened, url.CorrelationID}
+		row := []interface{}{url.ID, url.Original, url.Shortened, url.CorrelationID, url.UserID}
 		rows[i] = row
 	}
 
@@ -125,7 +148,7 @@ func (r *PostgresURLRepository) InsertAllOrUpdate(ctx context.Context, urls []mo
 	count, err := tx.CopyFrom(
 		ctx,
 		pgx.Identifier{"pg_temp", tempTable},
-		[]string{"id", "original_url", "short_url", "correlation_id"},
+		[]string{"id", "original_url", "short_url", "correlation_id", "user_id"},
 		pgx.CopyFromRows(rows),
 	)
 	if err != nil {
@@ -137,10 +160,10 @@ func (r *PostgresURLRepository) InsertAllOrUpdate(ctx context.Context, urls []mo
 
 	queryRows, err := tx.Query(ctx,
 		`
-		insert into url_shortener.url (id, original_url, short_url, correlation_id) 
-		select id, original_url, short_url, correlation_id from pg_temp.`+tempTable+` 
-		on conflict (id) do update set original_url = excluded.original_url, short_url = excluded.short_url, correlation_id = excluded.correlation_id
-		returning id, original_url, short_url, correlation_id 
+		insert into url_shortener.url (id, original_url, short_url, correlation_id, user_id) 
+		select id, original_url, short_url, correlation_id, user_id from pg_temp.`+tempTable+` 
+		on conflict (id) do update set original_url = excluded.original_url, short_url = excluded.short_url, correlation_id = excluded.correlation_id, user_id = excluded.user_id
+		returning id, original_url, short_url, correlation_id, user_id 
 		`)
 	if err != nil {
 		return nil, apperrors.NewValueError("unable to upsert batch", utils.Caller(), err)
