@@ -16,9 +16,9 @@ type JWTManager struct {
 	TokenName string
 }
 
-const token_exp = time.Hour * 24
-const secret_key = "supersecretkey"
-const token_name = "token"
+const tokenExp = time.Hour * 24
+const secretKey = "supersecretkey"
+const tokenName = "token"
 
 type claims struct {
 	jwt.RegisteredClaims
@@ -28,7 +28,7 @@ type claims struct {
 func InitJWTManager(logger *zap.Logger) *JWTManager {
 	j := &JWTManager{
 		logger:    logger,
-		TokenName: token_name,
+		TokenName: tokenName,
 	}
 	return j
 }
@@ -38,7 +38,7 @@ func (j *JWTManager) BuildJWTString() (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
 		RegisteredClaims: jwt.RegisteredClaims{
 			// когда создан токен
-			ExpiresAt: jwt.NewNumericDate(time.Now().Add(token_exp)),
+			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenExp)),
 		},
 
 		// собственное утверждение
@@ -46,7 +46,7 @@ func (j *JWTManager) BuildJWTString() (string, error) {
 	})
 
 	// создаём строку токена
-	tokenString, err := token.SignedString([]byte(secret_key))
+	tokenString, err := token.SignedString([]byte(secretKey))
 	if err != nil {
 		return "", err
 	}
@@ -62,7 +62,7 @@ func (j *JWTManager) GetUserID(tokenString string) (string, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, apperrors.NewValueError(fmt.Sprintf("unexpected signing method: %v", t.Header["alg"]), Caller(), errors.New("unexpected signing method"))
 			}
-			return []byte(secret_key), nil
+			return []byte(secretKey), nil
 		})
 	if err != nil {
 		return "", err
