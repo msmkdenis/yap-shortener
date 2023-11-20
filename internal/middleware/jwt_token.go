@@ -31,6 +31,7 @@ func (j *JWTCheckerCreator) JWTManager() echo.MiddlewareFunc {
 				userID, _ := j.jwtManager.GetUserID(token)
 				c.Set("userID", userID)
 				err := next(c)
+				j.logger.Info("token created", zap.String("userID", userID))
 				return err
 			}
 
@@ -41,12 +42,14 @@ func (j *JWTCheckerCreator) JWTManager() echo.MiddlewareFunc {
 				userID, _ := j.jwtManager.GetUserID(token)
 				c.Set("userID", userID)
 				err := next(c)
+				j.logger.Info("token created", zap.String("userID", userID))
 				return err
 			}
 
 			j.logger.Info("token checked", zap.String("userID", userID))
 			c.Set("userID", userID)
 			err = next(c)
+			j.logger.Info("token created", zap.String("userID", userID))
 			return err
 		}
 	}

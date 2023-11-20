@@ -34,6 +34,7 @@ func (j *JWTAuth) JWTAuth() echo.MiddlewareFunc {
 			}
 			c.Set("userID", userID)
 			err = next(c)
+			j.logger.Info("authenticated", zap.String("userID", userID))
 			return err
 		}
 	}
