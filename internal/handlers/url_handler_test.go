@@ -287,61 +287,7 @@ func TestGetURL(t *testing.T) {
 
 }
 
-// func TestGetURLError(t *testing.T) {
-// 	ctrl := gomock.NewController(t)
-// 	defer ctrl.Finish()
-
-// 	s := mock.NewMockURLService(ctrl)
-
-// 	logger, _ := zap.NewProduction()
-// 	e := echo.New()
-// 	jwtManager := utils.InitJWTManager(logger)
-// 	h := NewURLHandler(e, s, cfgMock.URLPrefix, jwtManager, logger)
-// 	defer e.Close()
-
-// 	s.EXPECT().GetByyID(gomock.Any(), gomock.Any()).Return("", apperrors.ErrURLNotFound)
-
-// 	testCaseWithError := []struct {
-// 		name         string
-// 		method       string
-// 		body         string
-// 		expectedCode int
-// 		path         string
-// 		expectedBody string
-// 	}{
-// 		{
-// 			name:         "BadRequest - url not found",
-// 			method:       http.MethodGet,
-// 			expectedCode: http.StatusBadRequest,
-// 			path:         "http://localhost:8080/MGRkMTk",
-// 			expectedBody: "URL with id MGRkMTk not found",
-// 		},
-// 	}
-
-// 	for _, test := range testCaseWithError {
-// 		t.Run(test.name, func(t *testing.T) {
-// 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
-// 			w := httptest.NewRecorder()
-// 			l := e.NewContext(request, w)
-// 			l.Set("userID", "userID")
-// 			err := h.FindURL(l)
-// 			require.NoError(t, err)
-// 			res := w.Result()
-// 			assert.Equal(t, test.expectedCode, res.StatusCode)
-// 			response, err := io.ReadAll(res.Body)
-// 			res.Body.Close()
-// 			assert.Equal(t, test.expectedBody, string(response))
-// 			require.NoError(t, err)
-// 		})
-// 	}
-// }
-
 func TestGetURLsByUserID_Unauthorized(t *testing.T) {
-	//ctrl := gomock.NewController(t)
-	//defer ctrl.Finish()
-
-	//s := mock.NewMockURLService(ctrl)
-
 	logger, _ := zap.NewProduction()
 	e := echo.New()
 	jwtManager := utils.InitJWTManager(logger)
@@ -353,9 +299,7 @@ func TestGetURLsByUserID_Unauthorized(t *testing.T) {
 	e.Use(requestLogger.RequestLogger())
 	e.Use(jwtAuth.JWTAuth())
 	e.Use(jwtCheckerCreator.JWTCheckOrCreate())
-
-	//s.EXPECT().GetAllByUserID(gomock.Any(), gomock.Any()).Return("", apperrors.ErrURLNotFound)
-
+	
 	testCaseWithError := []struct {
 		name         string
 		method       string

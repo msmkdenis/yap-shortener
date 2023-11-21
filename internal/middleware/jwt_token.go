@@ -28,9 +28,12 @@ func (j *JWTCheckerCreator) JWTCheckOrCreate() echo.MiddlewareFunc {
 			if er != nil {
 				j.logger.Warn("token not found, creating new token", zap.Error(er))
 				token := j.setCookieAndReturn(c)
-				userID, _ := j.jwtManager.GetUserID(token)
+				userID, err := j.jwtManager.GetUserID(token)
+				if err != nil {
+					j.logger.Fatal("unable to parse UserID, while creating new token", zap.Error(err))
+				}
 				c.Set("userID", userID)
-				err := next(c)
+				err = next(c)
 				j.logger.Info("token created", zap.String("userID", userID))
 				return err
 			}
@@ -39,9 +42,12 @@ func (j *JWTCheckerCreator) JWTCheckOrCreate() echo.MiddlewareFunc {
 			if err != nil {
 				j.logger.Warn("unable to parse UserID, creating new token", zap.Error(err))
 				token := j.setCookieAndReturn(c)
-				userID, _ := j.jwtManager.GetUserID(token)
+				userID, err := j.jwtManager.GetUserID(token)
+				if err != nil {
+					j.logger.Fatal("unable to parse UserID, while creating new token", zap.Error(err))
+				}
 				c.Set("userID", userID)
-				err := next(c)
+				err = next(c)
 				j.logger.Info("token created", zap.String("userID", userID))
 				return err
 			}
