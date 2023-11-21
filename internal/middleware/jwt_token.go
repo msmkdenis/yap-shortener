@@ -30,7 +30,8 @@ func (j *JWTCheckerCreator) JWTCheckOrCreate() echo.MiddlewareFunc {
 				token := j.setCookieAndReturn(c)
 				userID, err := j.jwtManager.GetUserID(token)
 				if err != nil {
-					j.logger.Fatal("unable to parse UserID, while creating new token", zap.Error(err))
+					j.logger.Error("unable to parse UserID, while creating new token", zap.Error(err))
+					return c.NoContent(http.StatusInternalServerError)
 				}
 				c.Set("userID", userID)
 				err = next(c)
@@ -44,7 +45,8 @@ func (j *JWTCheckerCreator) JWTCheckOrCreate() echo.MiddlewareFunc {
 				token := j.setCookieAndReturn(c)
 				userID, err := j.jwtManager.GetUserID(token)
 				if err != nil {
-					j.logger.Fatal("unable to parse UserID, while creating new token", zap.Error(err))
+					j.logger.Error("unable to parse UserID, while creating new token", zap.Error(err))
+					return c.NoContent(http.StatusInternalServerError)
 				}
 				c.Set("userID", userID)
 				err = next(c)
