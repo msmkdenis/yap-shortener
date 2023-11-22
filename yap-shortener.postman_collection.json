@@ -13,7 +13,7 @@
 				"header": [],
 				"body": {
 					"mode": "raw",
-					"raw": "http://sdfsdfsdf.com/bvoak0aaiflhkd"
+					"raw": "https://www.dns-shop.ru/"
 				},
 				"url": {
 					"raw": "http://localhost:8080/",
@@ -59,19 +59,49 @@
 			"response": []
 		},
 		{
-			"name": "Get URL from Storage",
+			"name": "PostBatch URL",
 			"request": {
-				"method": "GET",
+				"method": "POST",
 				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "[\n    {\n        \"correlation_id\":\"97819a7c-12912-4e44-9cf9-b777db50f135\",\n        \"original_url\":\"http://ip95fsd7tnksykxx.biz/q3jl16cuadw/viajydc/kp8rl2\"\n    },\n    {\n        \"correlation_id\":\"c9471650-264a9-4dcc-b6ae-364a3b5a9360\",\n        \"original_url\":\"http://yor5ffjwssnq.ru/ue22hj1id/xvah5beyf1eqa\"\n    },\n        {\n        \"correlation_id\":\"c9421650-262a9-4dcc-b6ae-364a3b5a9360\",\n        \"original_url\":\"http://yor5jwhhhssnq.ru/ue22hj1id/xvah5beyf1eqa\"\n    }\n]",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
 				"url": {
-					"raw": "http://localhost:8080/GIdtQGyd",
+					"raw": "http://localhost:8080/api/shorten/batch",
 					"protocol": "http",
 					"host": [
 						"localhost"
 					],
 					"port": "8080",
 					"path": [
-						"GIdtQGyd"
+						"api",
+						"shorten",
+						"batch"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "Get URL from Storage",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/OWUyMzI",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"OWUyMzI"
 					]
 				}
 			},
@@ -110,6 +140,25 @@
 					"port": "8080",
 					"path": [
 						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "GetPing",
+			"request": {
+				"method": "GET",
+				"header": [],
+				"url": {
+					"raw": "http://localhost:8080/ping",
+					"protocol": "http",
+					"host": [
+						"localhost"
+					],
+					"port": "8080",
+					"path": [
+						"ping"
 					]
 				}
 			},

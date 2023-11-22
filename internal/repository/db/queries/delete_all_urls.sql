@@ -1,0 +1,1 @@
+delete from url_shortener.url

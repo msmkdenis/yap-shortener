@@ -24,7 +24,7 @@ type URLHandler struct {
 	logger     *zap.Logger
 }
 
-func New(e *echo.Echo, service service.URLService, urlPrefix string, logger *zap.Logger) *URLHandler {
+func NewURLHandler(e *echo.Echo, service service.URLService, urlPrefix string, logger *zap.Logger) *URLHandler {
 	handler := &URLHandler{
 		urlService: service,
 		urlPrefix:  urlPrefix,
@@ -37,18 +37,55 @@ func New(e *echo.Echo, service service.URLService, urlPrefix string, logger *zap
 	e.Use(middleware.Compress())
 	e.Use(middleware.Decompress())
 
-	e.POST("/api/shorten", handler.PostShorten)
-	e.POST("/", handler.PostURL)
+	e.POST("/api/shorten", handler.AddShorten)
+	e.POST("/", handler.AddURL)
+	e.POST("/api/shorten/batch", handler.AddBatch)
 
-	e.GET("/*", handler.GetURL)
-	e.GET("/", handler.GetAll)
+	e.GET("/*", handler.FindURL)
+	e.GET("/", handler.FindAll)
+	e.GET("/ping", handler.Ping)
 
-	e.DELETE("/", handler.DeleteAll)
+	e.DELETE("/", handler.ClearAll)
 
 	return handler
 }
 
-func (h *URLHandler) PostShorten(c echo.Context) error {
+func (h *URLHandler) AddBatch(c echo.Context) error {
+	header := c.Request().Header.Get("Content-Type")
+	if header != "application/json" {
+		msg := "Content-Type header is not application/json"
+		h.logger.Error("StatusUnsupportedMediaType: " + msg)
+		return c.String(http.StatusUnsupportedMediaType, msg)
+	}
+
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusBadRequest, fmt.Sprintf("Error: Unknown error, unable to read request %s", err))
+	}
+
+	var urlBatchRequest []dto.URLBatchRequestType
+	err = json.Unmarshal([]byte(body), &urlBatchRequest)
+	if err != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
+	}
+
+	if len(urlBatchRequest) == 0 {
+		h.logger.Error("StatusBadRequest: empty batch request", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusBadRequest, "Error: empty batch request")
+	}
+
+	savedURLs, err := h.urlService.AddAll(c.Request().Context(), urlBatchRequest, h.urlPrefix)
+	if err != nil {
+		h.logger.Error("StatusInternalServerError: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
+	}
+
+	return c.JSON(http.StatusCreated, savedURLs)
+}
+
+func (h *URLHandler) AddShorten(c echo.Context) error {
 	header := c.Request().Header.Get("Content-Type")
 	if header != "application/json" {
 		msg := "Content-Type header is not application/json"
@@ -74,8 +111,8 @@ func (h *URLHandler) PostShorten(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	url, err := h.urlService.Add(urlRequest.URL, h.urlPrefix)
-	if err != nil {
+	url, err := h.urlService.Add(c.Request().Context(), urlRequest.URL, h.urlPrefix)
+	if err != nil && !errors.Is(err, apperrors.ErrURLAlreadyExists) {
 		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
@@ -84,10 +121,15 @@ func (h *URLHandler) PostShorten(c echo.Context) error {
 		Result: url.Shortened,
 	}
 
+	if errors.Is(err, apperrors.ErrURLAlreadyExists) {
+		h.logger.Warn("StatusConflict: url already exists", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.JSON(http.StatusConflict, response)
+	}
+
 	return c.JSON(http.StatusCreated, response)
 }
 
-func (h *URLHandler) PostURL(c echo.Context) error {
+func (h *URLHandler) AddURL(c echo.Context) error {
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
 		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
@@ -99,26 +141,32 @@ func (h *URLHandler) PostURL(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	url, err := h.urlService.Add(string(body), h.urlPrefix)
-	if err != nil {
+	url, err := h.urlService.Add(c.Request().Context(), string(body), h.urlPrefix)
+	if err != nil && !errors.Is(err, apperrors.ErrURLAlreadyExists) {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
+	}
+
+	if errors.Is(err, apperrors.ErrURLAlreadyExists) {
+		h.logger.Warn("StatusConflict: url already exists", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusConflict, url.Shortened)
 	}
 
 	c.Response().WriteHeader(http.StatusCreated)
 	return c.String(http.StatusCreated, url.Shortened)
 }
 
-func (h *URLHandler) DeleteAll(c echo.Context) error {
-	if err := h.urlService.DeleteAll(); err != nil {
+func (h *URLHandler) ClearAll(c echo.Context) error {
+	if err := h.urlService.DeleteAll(c.Request().Context()); err != nil {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
+
 	return c.String(http.StatusOK, "All data deleted")
 }
 
-func (h *URLHandler) GetAll(c echo.Context) error {
-	urls, err := h.urlService.GetAll()
+func (h *URLHandler) FindAll(c echo.Context) error {
+	urls, err := h.urlService.GetAll(c.Request().Context())
 	if err != nil {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
@@ -127,7 +175,7 @@ func (h *URLHandler) GetAll(c echo.Context) error {
 	return c.String(http.StatusOK, strings.Join(urls, ", "))
 }
 
-func (h *URLHandler) GetURL(c echo.Context) error {
+func (h *URLHandler) FindURL(c echo.Context) error {
 	id := (strings.Split(c.Request().URL.Path, "/"))[1]
 
 	if err := h.checkRequest(id); err != nil {
@@ -135,13 +183,13 @@ func (h *URLHandler) GetURL(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	originalURL, err := h.urlService.GetByyID(id)
+	originalURL, err := h.urlService.GetByyID(c.Request().Context(), id)
 
 	var message string
 	var status int
 
 	switch {
-	case errors.Is(err, apperrors.ErrorURLNotFound):
+	case errors.Is(err, apperrors.ErrURLNotFound):
 		h.logger.Info("StatusBadRequest: url not found", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		status = http.StatusBadRequest
 		message = fmt.Sprintf("URL with id %s not found", id)
@@ -162,7 +210,18 @@ func (h *URLHandler) GetURL(c echo.Context) error {
 
 func (h *URLHandler) checkRequest(s string) error {
 	if len(s) == 0 {
-		return apperrors.NewValueError("Unable to handle empty request", utils.Caller(), apperrors.ErrorEmptyRequest)
+		return apperrors.NewValueError("Unable to handle empty request", utils.Caller(), apperrors.ErrEmptyRequest)
 	}
+
 	return nil
+}
+
+func (h *URLHandler) Ping(c echo.Context) error {
+	status := http.StatusOK
+	err := h.urlService.Ping(c.Request().Context())
+	if err != nil {
+		status = http.StatusInternalServerError
+	}
+
+	return c.NoContent(status)
 }

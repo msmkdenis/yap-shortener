@@ -66,7 +66,7 @@ func (r *RequestLogger) RequestLogger() echo.MiddlewareFunc {
 
 			err := next(c)
 
-			r.ReqLogger.Info("post_logger",
+			r.ReqLogger.Info("request_logger",
 				zap.String("URI", uri),
 				zap.String("method", method),
 				zap.Duration("duration", duration),
