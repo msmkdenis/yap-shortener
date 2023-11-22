@@ -26,6 +26,10 @@ func NewURLRepository(logger *zap.Logger) *MemoryURLRepository {
 	}
 }
 
+func (r *MemoryURLRepository) DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) ([]model.URL, error) {
+	return nil, nil
+}
+
 func (r *MemoryURLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()

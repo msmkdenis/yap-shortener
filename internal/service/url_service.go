@@ -18,6 +18,7 @@ type URLRepository interface {
 	SelectAll(ctx context.Context) ([]model.URL, error)
 	SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error)
 	DeleteAll(ctx context.Context) error
+	DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) ([]model.URL, error)
 	Ping(ctx context.Context) error
 }
 
@@ -43,7 +44,24 @@ func (u *URLUseCase) GetAllByUserID(ctx context.Context, userID string) ([]dto.U
 	for i, url := range urls {
 		response[i] = dto.URLBatchResponseByUserID{
 			OriginalURL: url.Original,
-			ShortURL: url.Shortened,
+			ShortURL:    url.Shortened,
+		}
+	}
+
+	return response, nil
+}
+
+func (u *URLUseCase) DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) ([]dto.URLBatchResponseByUserID, error) {
+	urls, err := u.repository.DeleteAllByUserID(ctx, userID, shortURLs)
+	if err != nil {
+		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
+	}
+
+	response := make([]dto.URLBatchResponseByUserID, len(urls))
+	for i, url := range urls {
+		response[i] = dto.URLBatchResponseByUserID{
+			OriginalURL: url.Original,
+			ShortURL:    url.Shortened,
 		}
 	}
 
@@ -53,10 +71,11 @@ func (u *URLUseCase) GetAllByUserID(ctx context.Context, userID string) ([]dto.U
 func (u *URLUseCase) Add(ctx context.Context, s, host string, userID string) (*model.URL, error) {
 	urlKey := utils.GenerateMD5Hash(s)
 	url := &model.URL{
-		ID:        urlKey,
-		Original:  s,
-		Shortened: host + "/" + urlKey,
-		UserID:    userID,
+		ID:          urlKey,
+		Original:    s,
+		Shortened:   host + "/" + urlKey,
+		UserID:      userID,
+		DeletedFlag: false,
 	}
 
 	existingURL, err := u.repository.SelectByID(ctx, urlKey)
@@ -122,6 +141,7 @@ func (u *URLUseCase) AddAll(ctx context.Context, urls []dto.URLBatchRequest, hos
 			Shortened:     host + "/" + shortURL,
 			CorrelationID: v.CorrelationID,
 			UserID:        userID,
+			DeletedFlag:   false,
 		}
 		urlsToSave = append(urlsToSave, url)
 	}

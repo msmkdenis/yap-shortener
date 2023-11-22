@@ -80,6 +80,21 @@ func (mr *MockURLServiceMockRecorder) DeleteAll(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAll", reflect.TypeOf((*MockURLService)(nil).DeleteAll), arg0)
 }
 
+// DeleteAllByUserID mocks base method.
+func (m *MockURLService) DeleteAllByUserID(arg0 context.Context, arg1 string, arg2 []string) ([]dto.URLBatchResponseByUserID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "DeleteAllByUserID", arg0, arg1, arg2)
+	ret0, _ := ret[0].([]dto.URLBatchResponseByUserID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// DeleteAllByUserID indicates an expected call of DeleteAllByUserID.
+func (mr *MockURLServiceMockRecorder) DeleteAllByUserID(arg0, arg1, arg2 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllByUserID", reflect.TypeOf((*MockURLService)(nil).DeleteAllByUserID), arg0, arg1, arg2)
+}
+
 // GetAll mocks base method.
 func (m *MockURLService) GetAll(arg0 context.Context) ([]string, error) {
 	m.ctrl.T.Helper()

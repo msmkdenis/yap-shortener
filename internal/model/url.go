@@ -6,4 +6,5 @@ type URL struct {
 	Shortened     string `db:"short_url"`
 	CorrelationID string `db:"correlation_id"`
 	UserID        string `db:"user_id"`
+	DeletedFlag   bool   `db:"deleted_flag"`
 }

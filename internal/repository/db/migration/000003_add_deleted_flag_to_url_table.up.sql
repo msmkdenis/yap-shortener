@@ -1,0 +1,1 @@
+alter table url_shortener.url add column deleted_flag bool default false;

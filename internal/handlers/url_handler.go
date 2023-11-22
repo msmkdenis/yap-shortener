@@ -32,6 +32,7 @@ type URLService interface {
 	GetAll(ctx context.Context) ([]string, error)
 	GetAllByUserID(ctx context.Context, userID string) ([]dto.URLBatchResponseByUserID, error)
 	DeleteAll(ctx context.Context) error
+	DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) ([]dto.URLBatchResponseByUserID, error)
 	GetByyID(ctx context.Context, key string) (string, error)
 	Ping(ctx context.Context) error
 }
@@ -65,6 +66,7 @@ func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, jwtManage
 
 	protected := e.Group("/api/user", jwtAuth.JWTAuth())
 	protected.GET("/urls", handler.FindAllURLByUserID)
+	protected.DELETE("/urls", handler.DeleteAllURLsByUserID)
 
 	return handler
 }
@@ -83,6 +85,37 @@ func (h *URLHandler) FindAllURLByUserID(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, savedURLs)
+}
+
+func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
+	header := c.Request().Header.Get("Content-Type")
+	if header != "application/json" {
+		msg := "Content-Type header is not application/json"
+		h.logger.Error("StatusUnsupportedMediaType: " + msg)
+		return c.String(http.StatusUnsupportedMediaType, msg)
+	}
+
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusBadRequest, fmt.Sprintf("Error: Unknown error, unable to read request %s", err))
+	}
+
+	var shortURLs []string
+	err = json.Unmarshal([]byte(body), &shortURLs)
+	if err != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
+	}
+
+	userID := c.Get("userID").(string)
+	markedURLs, err := h.urlService.DeleteAllByUserID(c.Request().Context(), userID, shortURLs)
+	if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
+	}
+	
+	return c.JSON(http.StatusOK, markedURLs)
 }
 
 func (h *URLHandler) AddBatch(c echo.Context) error {

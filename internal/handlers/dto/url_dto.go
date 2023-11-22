@@ -21,4 +21,5 @@ type URLBatchResponse struct {
 type URLBatchResponseByUserID struct {
 	ShortURL    string `json:"short_url,omitempty"`
 	OriginalURL string `json:"original_url,omitempty"`
+	DeletedFlag bool   `json:"deleted_flag,omitempty"`
 }
