@@ -1,0 +1,1 @@
+select * from (select * from url_shortener.url for update) ss where user_id = $1 and id = any($2::text[])
