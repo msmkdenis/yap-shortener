@@ -81,12 +81,11 @@ func (mr *MockURLServiceMockRecorder) DeleteAll(arg0 interface{}) *gomock.Call {
 }
 
 // DeleteAllByUserID mocks base method.
-func (m *MockURLService) DeleteAllByUserID(arg0 context.Context, arg1 string, arg2 []string) ([]dto.URLBatchResponseByUserID, error) {
+func (m *MockURLService) DeleteAllByUserID(arg0 context.Context, arg1 string, arg2 []string) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "DeleteAllByUserID", arg0, arg1, arg2)
-	ret0, _ := ret[0].([]dto.URLBatchResponseByUserID)
-	ret1, _ := ret[1].(error)
-	return ret0, ret1
+	ret0, _ := ret[0].(error)
+	return ret0
 }
 
 // DeleteAllByUserID indicates an expected call of DeleteAllByUserID.

@@ -55,8 +55,8 @@ func NewFileURLRepository(path string, logger *zap.Logger) (*FileURLRepository, 
 	}, nil
 }
 
-func (r *FileURLRepository) DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) ([]model.URL, error) {
-	return nil, nil
+func (r *FileURLRepository) DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) error {
+	return nil
 }
 
 func (r *FileURLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {

@@ -48,21 +48,21 @@ func (r *PostgresURLRepository) Ping(ctx context.Context) error {
 	return r.PostgresPool.db.Ping(ctx)
 }
 
-func (r *PostgresURLRepository) DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) ([]model.URL, error) {
+func (r *PostgresURLRepository) DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) error {
 	tx, err := r.PostgresPool.db.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to start transaction", utils.Caller(), err)
+		return apperrors.NewValueError("unable to start transaction", utils.Caller(), err)
 	}
 	defer tx.Rollback(ctx)
 
 	block, err := tx.Prepare(ctx, "block", "SELECT * FROM (SELECT * FROM url_shortener.url FOR UPDATE) ss WHERE user_id = $1 and id = any($2::text[])")
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to prepare query", utils.Caller(), err)
+		return apperrors.NewValueError("unable to prepare query", utils.Caller(), err)
 	}
 
-	update, err := tx.Prepare(ctx, "update", "UPDATE url_shortener.url SET deleted_flag = true WHERE user_id = $1 and id = any($2::text[]) returning id, original_url, short_url, coalesce(correlation_id, ''), user_id, deleted_flag")
+	update, err := tx.Prepare(ctx, "update", "UPDATE url_shortener.url SET deleted_flag = true WHERE user_id = $1 and id = any($2::text[])")
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to prepare query", utils.Caller(), err)
+		return apperrors.NewValueError("unable to prepare query", utils.Caller(), err)
 	}
 
 	batch := &pgx.Batch{}
@@ -70,31 +70,31 @@ func (r *PostgresURLRepository) DeleteAllByUserID(ctx context.Context, userID st
 	batch.Queue(update.Name, userID, shortURLs)
 	result := tx.SendBatch(ctx, batch)
 
-	rows, err := result.Query()
-	if err != nil {
-		return nil, apperrors.NewValueError("query failed", utils.Caller(), err)
-	}
-	defer rows.Close()
+	// rows, err := result.Query()
+	// if err != nil {
+	// 	return nil, apperrors.NewValueError("query failed", utils.Caller(), err)
+	// }
+	// defer rows.Close()
 
-	urls, err := pgx.CollectRows(rows, pgx.RowToStructByPos[model.URL])
-	if err != nil {
-		return nil, apperrors.NewValueError("unable to collect rows", utils.Caller(), err)
-	}
+	// urls, err := pgx.CollectRows(rows, pgx.RowToStructByPos[model.URL])
+	// if err != nil {
+	// 	return nil, apperrors.NewValueError("unable to collect rows", utils.Caller(), err)
+	// }
 	err = result.Close()
 	if err != nil {
-		return nil, apperrors.NewValueError("close failed", utils.Caller(), err)
+		return apperrors.NewValueError("close failed", utils.Caller(), err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, apperrors.NewValueError("commit failed", utils.Caller(), err)
+		return apperrors.NewValueError("commit failed", utils.Caller(), err)
 	}
 
-	if len(urls) == 0 {
-		return nil, apperrors.NewValueError(fmt.Sprintf("urls not found by user %s", userID), utils.Caller(), apperrors.ErrURLNotFound)
-	}
+	// if len(urls) == 0 {
+	// 	return nil, apperrors.NewValueError(fmt.Sprintf("urls not found by user %s", userID), utils.Caller(), apperrors.ErrURLNotFound)
+	// }
 
-	return urls, nil
+	return  nil
 }
 
 func (r *PostgresURLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {

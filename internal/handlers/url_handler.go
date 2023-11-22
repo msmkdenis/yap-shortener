@@ -32,7 +32,7 @@ type URLService interface {
 	GetAll(ctx context.Context) ([]string, error)
 	GetAllByUserID(ctx context.Context, userID string) ([]dto.URLBatchResponseByUserID, error)
 	DeleteAll(ctx context.Context) error
-	DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) ([]dto.URLBatchResponseByUserID, error)
+	DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) error
 	GetByyID(ctx context.Context, key string) (string, error)
 	Ping(ctx context.Context) error
 }
@@ -109,13 +109,13 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 	}
 
 	userID := c.Get("userID").(string)
-	markedURLs, err := h.urlService.DeleteAllByUserID(c.Request().Context(), userID, shortURLs)
+	err = h.urlService.DeleteAllByUserID(c.Request().Context(), userID, shortURLs)
 	if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
 		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
 	
-	return c.JSON(http.StatusOK, markedURLs)
+	return c.NoContent(http.StatusAccepted)
 }
 
 func (h *URLHandler) AddBatch(c echo.Context) error {
@@ -264,6 +264,11 @@ func (h *URLHandler) FindURL(c echo.Context) error {
 		h.logger.Info("StatusBadRequest: url not found", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		status = http.StatusBadRequest
 		message = fmt.Sprintf("URL with id %s not found", id)
+	
+	case errors.Is(err, apperrors.ErrURLDeleted):
+		h.logger.Info("StatusBadRequest: url not found", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		status = http.StatusGone
+		message = fmt.Sprintf("URL with id %s has been deleted", id)
 
 	case err != nil:
 		h.logger.Error("InternalServerError", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))

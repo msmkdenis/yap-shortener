@@ -10,6 +10,7 @@ var (
 	ErrEmptyRequest     error = errors.New("unable to handle empty request")
 	ErrDuplicatedKeys   error = errors.New("duplicated keys in batch")
 	ErrURLAlreadyExists error = errors.New("url already exists")
+	ErrURLDeleted       error = errors.New("url deleted")
 )
 
 type ValueError struct {

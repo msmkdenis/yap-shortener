@@ -18,7 +18,7 @@ type URLRepository interface {
 	SelectAll(ctx context.Context) ([]model.URL, error)
 	SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error)
 	DeleteAll(ctx context.Context) error
-	DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) ([]model.URL, error)
+	DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) error
 	Ping(ctx context.Context) error
 }
 
@@ -51,21 +51,21 @@ func (u *URLUseCase) GetAllByUserID(ctx context.Context, userID string) ([]dto.U
 	return response, nil
 }
 
-func (u *URLUseCase) DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) ([]dto.URLBatchResponseByUserID, error) {
-	urls, err := u.repository.DeleteAllByUserID(ctx, userID, shortURLs)
+func (u *URLUseCase) DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) error {
+	err := u.repository.DeleteAllByUserID(ctx, userID, shortURLs)
 	if err != nil {
-		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
+		return fmt.Errorf("caller: %s %w", utils.Caller(), err)
 	}
 
-	response := make([]dto.URLBatchResponseByUserID, len(urls))
-	for i, url := range urls {
-		response[i] = dto.URLBatchResponseByUserID{
-			OriginalURL: url.Original,
-			ShortURL:    url.Shortened,
-		}
-	}
+	// response := make([]dto.URLBatchResponseByUserID, len(urls))
+	// for i, url := range urls {
+	// 	response[i] = dto.URLBatchResponseByUserID{
+	// 		OriginalURL: url.Original,
+	// 		ShortURL:    url.Shortened,
+	// 	}
+	// }
 
-	return response, nil
+	return nil
 }
 
 func (u *URLUseCase) Add(ctx context.Context, s, host string, userID string) (*model.URL, error) {
@@ -116,6 +116,10 @@ func (u *URLUseCase) GetByyID(ctx context.Context, key string) (string, error) {
 	url, err := u.repository.SelectByID(ctx, key)
 	if err != nil {
 		return "", fmt.Errorf("caller: %s %w", utils.Caller(), err)
+	}
+
+	if url.DeletedFlag {
+		return "", apperrors.NewValueError("deleted url", utils.Caller(), apperrors.ErrURLDeleted)
 	}
 
 	return url.Original, nil
