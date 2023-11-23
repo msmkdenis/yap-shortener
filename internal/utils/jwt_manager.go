@@ -7,8 +7,9 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"go.uber.org/zap"
+
+	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 )
 
 type JWTManager struct {

@@ -7,20 +7,20 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+
+	"github.com/msmkdenis/yap-shortener/internal/config"
+	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
+	"github.com/msmkdenis/yap-shortener/internal/service"
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/middleware"
 	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 
-	"github.com/golang/mock/gomock"
-	"github.com/labstack/echo/v4"
-
-	"github.com/msmkdenis/yap-shortener/internal/config"
-	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
-	"github.com/msmkdenis/yap-shortener/internal/service"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 var cfgMock = &config.Config{

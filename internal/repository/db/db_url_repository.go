@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-
 	"go.uber.org/zap"
 
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"

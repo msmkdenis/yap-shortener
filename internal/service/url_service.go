@@ -4,11 +4,12 @@ import (
 	"context"
 	"fmt"
 
+	"go.uber.org/zap"
+
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
-	"go.uber.org/zap"
 )
 
 type URLRepository interface {
@@ -56,14 +57,6 @@ func (u *URLUseCase) DeleteAllByUserID(ctx context.Context, userID string, short
 	if err != nil {
 		return fmt.Errorf("caller: %s %w", utils.Caller(), err)
 	}
-
-	// response := make([]dto.URLBatchResponseByUserID, len(urls))
-	// for i, url := range urls {
-	// 	response[i] = dto.URLBatchResponseByUserID{
-	// 		OriginalURL: url.Original,
-	// 		ShortURL:    url.Shortened,
-	// 	}
-	// }
 
 	return nil
 }

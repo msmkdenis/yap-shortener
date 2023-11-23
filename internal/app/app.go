@@ -2,15 +2,15 @@ package app
 
 import (
 	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
+
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/handlers"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
-
 	"github.com/msmkdenis/yap-shortener/internal/repository/db"
 	"github.com/msmkdenis/yap-shortener/internal/repository/file"
 	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 	"github.com/msmkdenis/yap-shortener/internal/service"
-	"go.uber.org/zap"
 )
 
 func URLShortenerRun() {

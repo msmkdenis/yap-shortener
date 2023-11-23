@@ -4,8 +4,9 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/msmkdenis/yap-shortener/internal/utils"
 	"go.uber.org/zap"
+
+	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
 type JWTAuth struct {

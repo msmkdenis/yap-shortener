@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"sync"
 
+	"go.uber.org/zap"
+
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
-
 	"github.com/msmkdenis/yap-shortener/internal/model"
-	"go.uber.org/zap"
 )
 
 type MemoryURLRepository struct {

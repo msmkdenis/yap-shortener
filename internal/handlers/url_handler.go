@@ -9,14 +9,14 @@ import (
 	"net/http"
 	"strings"
 
+	"go.uber.org/zap"
+	"github.com/labstack/echo/v4"
+
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 	"github.com/msmkdenis/yap-shortener/internal/middleware"
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
-	"go.uber.org/zap"
-
-	"github.com/labstack/echo/v4"
 )
 
 type URLHandler struct {

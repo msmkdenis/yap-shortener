@@ -10,10 +10,11 @@ import (
 	"path/filepath"
 	"sync"
 
+	"go.uber.org/zap"
+
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
-	"go.uber.org/zap"
 )
 
 const (
