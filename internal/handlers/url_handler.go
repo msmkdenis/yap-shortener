@@ -87,6 +87,7 @@ func (h *URLHandler) FindAllURLByUserID(c echo.Context) error {
 	return c.JSON(http.StatusOK, savedURLs)
 }
 
+//TODO: use fan-on fan-out
 func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 	header := c.Request().Header.Get("Content-Type")
 	if header != "application/json" {
