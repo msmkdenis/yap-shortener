@@ -7,10 +7,12 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"runtime"
 	"strings"
 
-	"go.uber.org/zap"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
+	"go.uber.org/zap"
 
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
@@ -87,7 +89,7 @@ func (h *URLHandler) FindAllURLByUserID(c echo.Context) error {
 	return c.JSON(http.StatusOK, savedURLs)
 }
 
-//TODO: use fan-on fan-out
+// TODO: use fan-on fan-out
 func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 	header := c.Request().Header.Get("Content-Type")
 	if header != "application/json" {
@@ -109,13 +111,29 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
 	}
 
-	userID := c.Get("userID").(string)
-	err = h.urlService.DeleteAllByUserID(c.Request().Context(), userID, shortURLs)
-	if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
-		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
-		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
+	workerPool := utils.NewWorkerPool(runtime.GOMAXPROCS(-1), h.logger)
+	workerPool.Start()
+
+	for _, shortURL := range shortURLs {
+		log.Info("Before Submitting task", zap.String("shortURL", shortURL))
+		url := []string{shortURL}
+		workerPool.Submit(func() {
+			err = h.urlService.DeleteAllByUserID(c.Request().Context(), c.Get("userID").(string), url)
+			if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
+				h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+			}
+		})
 	}
-	
+	workerPool.Stop()
+	workerPool.Wait()
+
+	// userID := c.Get("userID").(string)
+	// err = h.urlService.DeleteAllByUserID(c.Request().Context(), userID, shortURLs)
+	// if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
+	// 	h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+	// 	return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
+	// }
+
 	return c.NoContent(http.StatusAccepted)
 }
 
@@ -265,7 +283,7 @@ func (h *URLHandler) FindURL(c echo.Context) error {
 		h.logger.Info("StatusBadRequest: url not found", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		status = http.StatusBadRequest
 		message = fmt.Sprintf("URL with id %s not found", id)
-	
+
 	case errors.Is(err, apperrors.ErrURLDeleted):
 		h.logger.Info("StatusBadRequest: url not found", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		status = http.StatusGone
