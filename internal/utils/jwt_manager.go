@@ -35,14 +35,10 @@ func InitJWTManager(logger *zap.Logger) *JWTManager {
 }
 
 func (j *JWTManager) BuildJWTString() (string, error) {
-	// создаём новый токен с алгоритмом подписи HS256 и утверждениями — Claims
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
 		RegisteredClaims: jwt.RegisteredClaims{
-			// когда создан токен
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenExp)),
 		},
-
-		// собственное утверждение
 		UserID: uuid.New().String(),
 	})
 
@@ -52,7 +48,6 @@ func (j *JWTManager) BuildJWTString() (string, error) {
 		return "", err
 	}
 
-	// возвращаем строку токена
 	return tokenString, nil
 }
 

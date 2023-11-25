@@ -89,7 +89,6 @@ func (h *URLHandler) FindAllURLByUserID(c echo.Context) error {
 	return c.JSON(http.StatusOK, savedURLs)
 }
 
-// TODO: use fan-on fan-out
 func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 	header := c.Request().Header.Get("Content-Type")
 	if header != "application/json" {
@@ -115,7 +114,7 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 	workerPool.Start()
 
 	for _, shortURL := range shortURLs {
-		log.Info("Before Submitting task", zap.String("shortURL", shortURL))
+		log.Info("Submitting task", zap.String("delete shortURL", shortURL))
 		url := []string{shortURL}
 		workerPool.Submit(func() {
 			err = h.urlService.DeleteAllByUserID(c.Request().Context(), c.Get("userID").(string), url)
@@ -124,15 +123,9 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 			}
 		})
 	}
-	workerPool.Stop()
-	workerPool.Wait()
 
-	// userID := c.Get("userID").(string)
-	// err = h.urlService.DeleteAllByUserID(c.Request().Context(), userID, shortURLs)
-	// if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
-	// 	h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
-	// 	return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
-	// }
+	workerPool.Stop()
+	workerPool.Wait() // also we can skip this line and return 202 since there is no need in returning info to client
 
 	return c.NoContent(http.StatusAccepted)
 }

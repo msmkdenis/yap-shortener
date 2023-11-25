@@ -19,7 +19,6 @@ func GenerateMD5Hash(text string) string {
 }
 
 func Caller() (string) {
-
 	_, file, lineNo, ok := runtime.Caller(1)
 	if !ok {
 	 return "runtime.Caller() failed"
