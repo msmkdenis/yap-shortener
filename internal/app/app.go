@@ -1,16 +1,22 @@
 package app
 
 import (
+	"context"
+	"net/http"
+	"os"
+	"os/signal"
+	"time"
+
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/handlers"
-	"github.com/msmkdenis/yap-shortener/internal/utils"
 	"github.com/msmkdenis/yap-shortener/internal/repository/db"
 	"github.com/msmkdenis/yap-shortener/internal/repository/file"
 	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 	"github.com/msmkdenis/yap-shortener/internal/service"
+	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
 func URLShortenerRun() {
@@ -22,7 +28,21 @@ func URLShortenerRun() {
 
 	e := echo.New()
 	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger)
-	e.Logger.Fatal(e.Start(cfg.URLServer))
+
+	go func() {
+		if err := e.Start(cfg.URLServer); err != nil && err != http.ErrServerClosed {
+			e.Logger.Fatal("shutting down the server")
+		}
+	}()
+
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, os.Interrupt)
+	<-quit
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		e.Logger.Fatal(err)
+	}
 }
 
 func initRepository(cfg *config.Config, logger *zap.Logger) service.URLRepository {
