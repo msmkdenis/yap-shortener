@@ -25,7 +25,7 @@ const (
 
 type claims struct {
 	jwt.RegisteredClaims
-	userID string
+	UserID string
 }
 
 func InitJWTManager(logger *zap.Logger) *JWTManager {
@@ -41,7 +41,7 @@ func (j *JWTManager) BuildJWTString() (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenExp)),
 		},
-		userID: uuid.New().String(),
+		UserID: uuid.New().String(),
 	})
 
 	// создаём строку токена
@@ -67,9 +67,9 @@ func (j *JWTManager) GetUserID(tokenString string) (string, error) {
 	}
 
 	if !token.Valid {
-		fmt.Println("Token is not valid")
+		j.logger.Warn("token is not valid", zap.Error(err))
 		return "", apperrors.NewValueError("token is not valid", Caller(), errors.New("token is not valid"))
 	}
 
-	return claims.userID, nil
+	return claims.UserID, nil
 }
