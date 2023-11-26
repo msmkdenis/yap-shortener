@@ -13,14 +13,13 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
-	"github.com/msmkdenis/yap-shortener/internal/config"
-	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
-	"github.com/msmkdenis/yap-shortener/internal/service"
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
+	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/middleware"
+	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
 	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
+	"github.com/msmkdenis/yap-shortener/internal/service"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
-
 )
 
 var cfgMock = &config.Config{
@@ -102,9 +101,7 @@ func TestURLHandler(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-
 			switch test.method {
-
 			case http.MethodGet:
 				preRequest := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", strings.NewReader(test.body))
 				preW := httptest.NewRecorder()
@@ -202,8 +199,7 @@ func TestPostShorten(t *testing.T) {
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			switch test.method {
-			case http.MethodPost:
+			if test.method == http.MethodPost {
 				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
 				request.Header.Set("Content-Type", test.contentType)
 				w := httptest.NewRecorder()
@@ -284,7 +280,6 @@ func TestGetURL(t *testing.T) {
 			require.NoError(t, err)
 		})
 	}
-
 }
 
 func TestGetURLsByUserID_Unauthorized(t *testing.T) {
@@ -299,7 +294,7 @@ func TestGetURLsByUserID_Unauthorized(t *testing.T) {
 	e.Use(requestLogger.RequestLogger())
 	e.Use(jwtAuth.JWTAuth())
 	e.Use(jwtCheckerCreator.JWTCheckOrCreate())
-	
+
 	testCaseWithError := []struct {
 		name         string
 		method       string

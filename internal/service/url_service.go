@@ -124,8 +124,8 @@ func (u *URLUseCase) Ping(ctx context.Context) error {
 }
 
 func (u *URLUseCase) AddAll(ctx context.Context, urls []dto.URLBatchRequest, host string, userID string) ([]dto.URLBatchResponse, error) {
-	var urlsToSave []model.URL
-	var keys = make(map[string]string, len(urls))
+	urlsToSave := make([]model.URL, 0, len(urls))
+	keys := make(map[string]string, len(urls))
 	for _, v := range urls {
 		if _, ok := keys[v.CorrelationID]; ok {
 			return nil, apperrors.NewValueError("duplicated keys", utils.Caller(), apperrors.ErrDuplicatedKeys)
@@ -148,7 +148,7 @@ func (u *URLUseCase) AddAll(ctx context.Context, urls []dto.URLBatchRequest, hos
 		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
 	}
 
-	var response []dto.URLBatchResponse
+	response := make([]dto.URLBatchResponse, 0, len(savedURLs))
 	for _, url := range savedURLs {
 		responseURL := dto.URLBatchResponse{
 			CorrelationID: url.CorrelationID,

@@ -92,7 +92,7 @@ func (r *PostgresURLRepository) DeleteAllByUserID(ctx context.Context, userID st
 		return apperrors.NewValueError("commit failed", utils.Caller(), err)
 	}
 
-	return  nil
+	return nil
 }
 
 func (r *PostgresURLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {
@@ -119,7 +119,6 @@ func (r *PostgresURLRepository) Insert(ctx context.Context, url model.URL) (*mod
 	err := r.PostgresPool.db.QueryRow(ctx, insertURLAndReturn,
 		url.ID, url.Original, url.Shortened, url.UserID, url.DeletedFlag).
 		Scan(&savedURL.ID, &savedURL.Original, &savedURL.Shortened, &savedURL.UserID, &savedURL.DeletedFlag)
-
 	if err != nil {
 		return nil, apperrors.NewValueError("query failed", utils.Caller(), err)
 	}
@@ -131,7 +130,6 @@ func (r *PostgresURLRepository) SelectByID(ctx context.Context, key string) (*mo
 	var url model.URL
 	err := r.PostgresPool.db.QueryRow(ctx, selectURLByID, key).
 		Scan(&url.ID, &url.Original, &url.Shortened, &url.CorrelationID, &url.UserID, &url.DeletedFlag)
-
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			err = apperrors.NewValueError("url not found", utils.Caller(), apperrors.ErrURLNotFound)
@@ -161,7 +159,6 @@ func (r *PostgresURLRepository) SelectAll(ctx context.Context) ([]model.URL, err
 
 func (r *PostgresURLRepository) DeleteAll(ctx context.Context) error {
 	_, err := r.PostgresPool.db.Exec(ctx, deleteAllURLs)
-
 	if err != nil {
 		return apperrors.NewValueError("query failed", utils.Caller(), err)
 	}
@@ -206,7 +203,7 @@ func (r *PostgresURLRepository) InsertAllOrUpdate(ctx context.Context, urls []mo
 	}
 
 	upsertFromTmpTableQuery := fmt.Sprintf(upsertAndReturnURLsFromTmpTable, tempTable)
-	queryRows, err := tx.Query(ctx,upsertFromTmpTableQuery)
+	queryRows, err := tx.Query(ctx, upsertFromTmpTableQuery)
 	if err != nil {
 		return nil, apperrors.NewValueError("unable to upsert batch", utils.Caller(), err)
 	}

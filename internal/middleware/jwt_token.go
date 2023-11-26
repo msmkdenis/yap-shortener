@@ -29,37 +29,32 @@ func (j *JWTCheckerCreator) JWTCheckOrCreate() echo.MiddlewareFunc {
 			if er != nil {
 				j.logger.Warn("token not found, creating new token", zap.Error(er))
 				token := j.setCookieAndReturn(c)
-				userID, err := j.jwtManager.GetUserID(token)
+				newUserID, err := j.jwtManager.GetUserID(token)
 				if err != nil {
 					j.logger.Error("unable to parse UserID, while creating new token", zap.Error(err))
 					return c.NoContent(http.StatusInternalServerError)
 				}
-				c.Set("userID", userID)
-				err = next(c)
-				j.logger.Info("token created", zap.String("userID", userID))
-				return err
+				c.Set("userID", newUserID)
+				j.logger.Info("token created", zap.String("userID", newUserID))
+				return next(c)
 			}
 
 			userID, err := j.jwtManager.GetUserID(cookie.Value)
 			if err != nil {
 				j.logger.Warn("unable to parse UserID, creating new token", zap.Error(err))
 				token := j.setCookieAndReturn(c)
-				userID, err := j.jwtManager.GetUserID(token)
+				newUserID, err := j.jwtManager.GetUserID(token)
 				if err != nil {
 					j.logger.Error("unable to parse UserID, while creating new token", zap.Error(err))
 					return c.NoContent(http.StatusInternalServerError)
 				}
-				c.Set("userID", userID)
-				err = next(c)
-				j.logger.Info("token created", zap.String("userID", userID))
-				return err
+				c.Set("userID", newUserID)
+				j.logger.Info("token created", zap.String("userID", newUserID))
+				return next(c)
 			}
 
-			j.logger.Info("token checked", zap.String("userID", userID))
 			c.Set("userID", userID)
-			err = next(c)
-			j.logger.Info("token created", zap.String("userID", userID))
-			return err
+			return next(c)
 		}
 	}
 }

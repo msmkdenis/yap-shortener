@@ -18,13 +18,13 @@ func GenerateMD5Hash(text string) string {
 	return encoded[:7]
 }
 
-func Caller() (string) {
+func Caller() string {
 	_, file, lineNo, ok := runtime.Caller(1)
 	if !ok {
-	 return "runtime.Caller() failed"
+		return "runtime.Caller() failed"
 	}
 
 	fileName := path.Base(file)
 	dir := filepath.Base(filepath.Dir(file))
 	return fmt.Sprintf("%s/%s:%d", dir, fileName, lineNo)
-   }
+}

@@ -2,6 +2,7 @@ package app
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"os"
 	"os/signal"
@@ -30,7 +31,7 @@ func URLShortenerRun() {
 	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger)
 
 	go func() {
-		if err := e.Start(cfg.URLServer); err != nil && err != http.ErrServerClosed {
+		if err := e.Start(cfg.URLServer); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			e.Logger.Fatal("shutting down the server")
 		}
 	}()

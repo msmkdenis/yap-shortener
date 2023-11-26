@@ -7,26 +7,24 @@ import (
 
 type Repository uint
 
-const(
+const (
 	DataBaseRepository Repository = iota + 1
 	FileRepository
 	MemoryRepostiory
 )
 
 type Config struct {
-	URLServer          string
-	URLPrefix          string
-	FileStoragePath    string
-	DataBaseDSN        string
-	RepositoryType     Repository
-
+	URLServer       string
+	URLPrefix       string
+	FileStoragePath string
+	DataBaseDSN     string
+	RepositoryType  Repository
 }
 
 func NewConfig() *Config {
-
-	var config = Config{
-		URLServer:       "8080",
-		URLPrefix:       "http://localhost:8080",
+	config := Config{
+		URLServer: "8080",
+		URLPrefix: "http://localhost:8080",
 	}
 
 	config.parseFlags()
@@ -59,7 +57,6 @@ func (c *Config) parseFlags() {
 }
 
 func (c *Config) parseEnv() {
-
 	if envURLServer := os.Getenv("SERVER_ADDRESS"); envURLServer != "" {
 		c.URLServer = envURLServer
 	}

@@ -17,13 +17,15 @@ type JWTManager struct {
 	TokenName string
 }
 
-const tokenExp = time.Hour * 24
-const secretKey = "supersecretkey"
-const tokenName = "token"
+const (
+	tokenExp  = time.Hour * 24
+	secretKey = "supersecretkey"
+	tokenName = "token"
+)
 
 type claims struct {
 	jwt.RegisteredClaims
-	UserID string
+	userID string
 }
 
 func InitJWTManager(logger *zap.Logger) *JWTManager {
@@ -39,7 +41,7 @@ func (j *JWTManager) BuildJWTString() (string, error) {
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(tokenExp)),
 		},
-		UserID: uuid.New().String(),
+		userID: uuid.New().String(),
 	})
 
 	// создаём строку токена
@@ -69,5 +71,5 @@ func (j *JWTManager) GetUserID(tokenString string) (string, error) {
 		return "", apperrors.NewValueError("token is not valid", Caller(), errors.New("token is not valid"))
 	}
 
-	return claims.UserID, nil
+	return claims.userID, nil
 }

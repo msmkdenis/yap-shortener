@@ -104,7 +104,7 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 	}
 
 	var shortURLs []string
-	err = json.Unmarshal([]byte(body), &shortURLs)
+	err = json.Unmarshal(body, &shortURLs)
 	if err != nil {
 		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
@@ -145,7 +145,7 @@ func (h *URLHandler) AddBatch(c echo.Context) error {
 	}
 
 	var urlBatchRequest []dto.URLBatchRequest
-	err = json.Unmarshal([]byte(body), &urlBatchRequest)
+	err = json.Unmarshal(body, &urlBatchRequest)
 	if err != nil {
 		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
 		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
@@ -174,16 +174,16 @@ func (h *URLHandler) AddShorten(c echo.Context) error {
 		return c.String(http.StatusUnsupportedMediaType, msg)
 	}
 
-	body, err := io.ReadAll(c.Request().Body)
-	if err != nil {
-		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
-		return c.String(http.StatusBadRequest, fmt.Sprintf("Error: Unknown error, unable to read request %s", err))
+	body, readBodyErr := io.ReadAll(c.Request().Body)
+	if readBodyErr != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), readBodyErr)))
+		return c.String(http.StatusBadRequest, fmt.Sprintf("Error: Unknown error, unable to read request %s", readBodyErr))
 	}
 
 	var urlRequest dto.URLRequest
-	err = json.Unmarshal(body, &urlRequest)
-	if err != nil {
-		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+	unmarshalErr := json.Unmarshal(body, &urlRequest)
+	if unmarshalErr != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), unmarshalErr)))
 		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
 	}
 
@@ -212,9 +212,9 @@ func (h *URLHandler) AddShorten(c echo.Context) error {
 }
 
 func (h *URLHandler) AddURL(c echo.Context) error {
-	body, err := io.ReadAll(c.Request().Body)
-	if err != nil {
-		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+	body, readErr := io.ReadAll(c.Request().Body)
+	if readErr != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), readErr)))
 		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
 	}
 
