@@ -57,7 +57,7 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Unauthorized() {
 		assert.NoError(s.T(), err)
 	}(s.echo)
 
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -68,13 +68,13 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Unauthorized() {
 		{
 			name:         "BadRequest - unauthorized",
 			method:       http.MethodDelete,
-			expectedCode: http.StatusNoContent,
+			expectedCode: http.StatusUnauthorized,
 			path:         "http://localhost:8080/api/user/urls",
 			expectedBody: "",
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			w := httptest.NewRecorder()
@@ -85,7 +85,7 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Unauthorized() {
 }
 
 func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_WrongMediaType() {
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -102,7 +102,7 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_WrongMediaType() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().DeleteAllByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
@@ -121,7 +121,7 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_WrongMediaType() {
 }
 
 func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_BadRequest() {
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -140,7 +140,7 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_BadRequest() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().DeleteAllByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			r, jsonErr := json.Marshal(test.requestBody)
@@ -161,7 +161,7 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_BadRequest() {
 }
 
 func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Success() {
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -180,7 +180,7 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Success() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		test := test
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().DeleteAllByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(3).Return(nil)
@@ -207,7 +207,7 @@ func (s *URLHandlerTestSuite) TestFindAllURLByUserID_Unauthorized() {
 		assert.NoError(s.T(), err)
 	}(s.echo)
 
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -218,46 +218,13 @@ func (s *URLHandlerTestSuite) TestFindAllURLByUserID_Unauthorized() {
 		{
 			name:         "BadRequest - unauthorized",
 			method:       http.MethodGet,
-			expectedCode: http.StatusNoContent,
+			expectedCode: http.StatusUnauthorized,
 			path:         "http://localhost:8080/api/user/urls",
 			expectedBody: "",
 		},
 	}
 
-	for _, test := range testCaseWithError {
-		s.T().Run(test.name, func(t *testing.T) {
-			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
-			w := httptest.NewRecorder()
-			s.echo.ServeHTTP(w, request)
-			assert.Equal(t, test.expectedCode, w.Code)
-		})
-	}
-}
-
-func (s *URLHandlerTestSuite) TestFindAllURLByUserID_Success() {
-	defer func(echo *echo.Echo) {
-		err := echo.Close()
-		assert.NoError(s.T(), err)
-	}(s.echo)
-
-	testCaseWithError := []struct {
-		name         string
-		method       string
-		body         string
-		expectedCode int
-		path         string
-		expectedBody string
-	}{
-		{
-			name:         "BadRequest - unauthorized",
-			method:       http.MethodGet,
-			expectedCode: http.StatusNoContent,
-			path:         "http://localhost:8080/api/user/urls",
-			expectedBody: "",
-		},
-	}
-
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			w := httptest.NewRecorder()
@@ -268,7 +235,7 @@ func (s *URLHandlerTestSuite) TestFindAllURLByUserID_Success() {
 }
 
 func (s *URLHandlerTestSuite) TestFindAllURLByUserID_NoContent() {
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -285,7 +252,7 @@ func (s *URLHandlerTestSuite) TestFindAllURLByUserID_NoContent() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().GetAllByUserID(gomock.Any(), gomock.Any()).Times(1).Return(nil, apperrors.ErrURLNotFound)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
@@ -304,7 +271,7 @@ func (s *URLHandlerTestSuite) TestFindAllURLByUserID_NoContent() {
 }
 
 func (s *URLHandlerTestSuite) TestAddBatch_WrongMediaType() {
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -321,7 +288,7 @@ func (s *URLHandlerTestSuite) TestAddBatch_WrongMediaType() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().AddAll(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
@@ -340,7 +307,7 @@ func (s *URLHandlerTestSuite) TestAddBatch_WrongMediaType() {
 }
 
 func (s *URLHandlerTestSuite) TestAddBatch_EmptyRequest() {
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         []string
@@ -358,7 +325,7 @@ func (s *URLHandlerTestSuite) TestAddBatch_EmptyRequest() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().AddAll(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			body, jsonErr := json.Marshal(test.body)
@@ -400,7 +367,7 @@ func (s *URLHandlerTestSuite) TestAddBatch_Success() {
 	}
 	request := []dto.URLBatchRequest{fullURL1, fullURL2}
 
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         []dto.URLBatchRequest
@@ -418,7 +385,7 @@ func (s *URLHandlerTestSuite) TestAddBatch_Success() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().AddAll(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(shortURLs, nil)
 			body, jsonErr := json.Marshal(test.body)
@@ -444,7 +411,7 @@ func (s *URLHandlerTestSuite) TestAddBatch_Success() {
 }
 
 func (s *URLHandlerTestSuite) TestAddShorten_EmptyRequest() {
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         dto.URLRequest
@@ -462,7 +429,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_EmptyRequest() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			body, jsonErr := json.Marshal(test.body)
@@ -484,7 +451,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_EmptyRequest() {
 }
 
 func (s *URLHandlerTestSuite) TestAddShorten_WrongMediaType() {
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -501,7 +468,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_WrongMediaType() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
@@ -523,7 +490,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_InternalServerError() {
 	requestBody := dto.URLRequest{URL: "https://example.com"}
 	respErr := errors.New("internal server error")
 
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         dto.URLRequest
@@ -532,7 +499,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_InternalServerError() {
 		expectedBody string
 	}{
 		{
-			name:         "BadRequest - unsupported media type",
+			name:         "InternalServerError",
 			method:       http.MethodPost,
 			expectedCode: http.StatusInternalServerError,
 			path:         "http://localhost:8080/api/shorten",
@@ -541,7 +508,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_InternalServerError() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, respErr)
 			body, jsonErr := json.Marshal(test.body)
@@ -568,7 +535,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_Success() {
 	url := &model.URL{Original: "https://example.com", Shortened: "test"}
 	responseBody := dto.URLResponse{Result: url.Shortened}
 
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         dto.URLRequest
@@ -586,7 +553,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_Success() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(url, nil)
 			body, jsonErr := json.Marshal(test.body)
@@ -617,7 +584,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_UrlAlreadyExists() {
 	responseBody := dto.URLResponse{Result: url.Shortened}
 	mockErr := apperrors.ErrURLAlreadyExists
 
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         dto.URLRequest
@@ -635,7 +602,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_UrlAlreadyExists() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(url, mockErr)
 			body, jsonErr := json.Marshal(test.body)
@@ -661,7 +628,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_UrlAlreadyExists() {
 }
 
 func (s *URLHandlerTestSuite) TestAddURL_EmptyRequest() {
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -679,7 +646,7 @@ func (s *URLHandlerTestSuite) TestAddURL_EmptyRequest() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
@@ -702,7 +669,7 @@ func (s *URLHandlerTestSuite) TestAddURL_InternalServerError() {
 	requestBody := "https://example.com"
 	respErr := errors.New("internal server error")
 
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -711,7 +678,7 @@ func (s *URLHandlerTestSuite) TestAddURL_InternalServerError() {
 		expectedBody string
 	}{
 		{
-			name:         "Internal server error",
+			name:         "InternalServerError",
 			method:       http.MethodPost,
 			expectedCode: http.StatusInternalServerError,
 			path:         "http://localhost:8080/api/shorten",
@@ -720,7 +687,7 @@ func (s *URLHandlerTestSuite) TestAddURL_InternalServerError() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, respErr)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
@@ -745,7 +712,7 @@ func (s *URLHandlerTestSuite) TestAddURL_Success() {
 	url := &model.URL{Original: "https://example.com", Shortened: "test"}
 	responseBody := url.Shortened
 
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -763,7 +730,7 @@ func (s *URLHandlerTestSuite) TestAddURL_Success() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(url, nil)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
@@ -789,7 +756,7 @@ func (s *URLHandlerTestSuite) TestAddURL_UrlAlreadyExists() {
 	responseBody := url.Shortened
 	mockErr := apperrors.ErrURLAlreadyExists
 
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -807,7 +774,7 @@ func (s *URLHandlerTestSuite) TestAddURL_UrlAlreadyExists() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(url, mockErr)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
@@ -828,7 +795,7 @@ func (s *URLHandlerTestSuite) TestAddURL_UrlAlreadyExists() {
 }
 
 func (s *URLHandlerTestSuite) TestClearALL_InternalServerError() {
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -837,7 +804,7 @@ func (s *URLHandlerTestSuite) TestClearALL_InternalServerError() {
 		expectedBody string
 	}{
 		{
-			name:         "Internal server error",
+			name:         "InternalServerError",
 			method:       http.MethodDelete,
 			expectedCode: http.StatusInternalServerError,
 			path:         "http://localhost:8080/",
@@ -846,7 +813,7 @@ func (s *URLHandlerTestSuite) TestClearALL_InternalServerError() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().DeleteAll(gomock.Any()).Times(1).Return(errors.New("internal server error"))
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
@@ -865,7 +832,7 @@ func (s *URLHandlerTestSuite) TestClearALL_InternalServerError() {
 }
 
 func (s *URLHandlerTestSuite) TestClearALL_Success() {
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -874,7 +841,7 @@ func (s *URLHandlerTestSuite) TestClearALL_Success() {
 		expectedBody string
 	}{
 		{
-			name:         "Internal server error",
+			name:         "Success",
 			method:       http.MethodDelete,
 			expectedCode: http.StatusOK,
 			path:         "http://localhost:8080/",
@@ -883,7 +850,7 @@ func (s *URLHandlerTestSuite) TestClearALL_Success() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().DeleteAll(gomock.Any()).Times(1).Return(nil)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
@@ -905,7 +872,7 @@ func (s *URLHandlerTestSuite) TestFindURL_Success() {
 	url := &model.URL{Original: "https://example.com", Shortened: "test"}
 	responseBody := url.Original
 
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -922,7 +889,7 @@ func (s *URLHandlerTestSuite) TestFindURL_Success() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().GetByyID(gomock.Any(), url.Shortened).Times(1).Return(responseBody, nil)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
@@ -943,7 +910,7 @@ func (s *URLHandlerTestSuite) TestFindURL_Success() {
 }
 
 func (s *URLHandlerTestSuite) TestFindURL_EmptyRequest() {
-	testCaseWithError := []struct {
+	testCases := []struct {
 		name         string
 		method       string
 		body         string
@@ -952,7 +919,7 @@ func (s *URLHandlerTestSuite) TestFindURL_EmptyRequest() {
 		expectedBody string
 	}{
 		{
-			name:         "Success",
+			name:         "BadRequest - empty request",
 			method:       http.MethodPost,
 			expectedCode: http.StatusBadRequest,
 			path:         "http://localhost:8080/",
@@ -960,7 +927,7 @@ func (s *URLHandlerTestSuite) TestFindURL_EmptyRequest() {
 		},
 	}
 
-	for _, test := range testCaseWithError {
+	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().GetByyID(gomock.Any(), gomock.Any()).Times(0)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))

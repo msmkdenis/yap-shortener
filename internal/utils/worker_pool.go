@@ -14,7 +14,6 @@ type WorkerPool struct {
 }
 
 func NewWorkerPool(workers int, logger *zap.Logger) *WorkerPool {
-
 	return &WorkerPool{
 		workers:   workers,
 		taskQueue: make(chan func()),

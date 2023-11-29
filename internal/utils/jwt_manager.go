@@ -19,7 +19,7 @@ type JWTManager struct {
 }
 
 const (
-	tokenExp  = time.Hour * 24
+	tokenExp = time.Hour * 24
 )
 
 type claims struct {

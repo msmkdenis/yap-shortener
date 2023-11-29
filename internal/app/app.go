@@ -2,15 +2,14 @@ package app
 
 import (
 	"context"
-	_ "embed"
 	"errors"
 	"net/http"
 	"os"
 	"os/signal"
 	"time"
 
-	"github.com/labstack/gommon/log"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
 	"go.uber.org/zap"
 
 	"github.com/msmkdenis/yap-shortener/internal/config"
