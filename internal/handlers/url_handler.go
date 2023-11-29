@@ -124,7 +124,7 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 		})
 	}
 
-	workerPool.Stop()
+	defer workerPool.Stop()
 	workerPool.Wait() // also we can skip this line and return 202 since there is no need in returning info to client
 
 	return c.NoContent(http.StatusAccepted)

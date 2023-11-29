@@ -8,6 +8,8 @@ import (
 	"os/signal"
 	"time"
 
+	"github.com/labstack/gommon/log"
+
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 
@@ -22,7 +24,10 @@ import (
 
 func URLShortenerRun() {
 	cfg := *config.NewConfig()
-	logger, _ := zap.NewProduction()
+	logger, err := zap.NewProduction()
+	if err != nil {
+		log.Fatal("Unable to initialize zap logger", zap.Error(err))
+	}
 	jwtManager := utils.InitJWTManager(logger)
 	repository := initRepository(&cfg, logger)
 	urlService := service.NewURLService(repository, logger)

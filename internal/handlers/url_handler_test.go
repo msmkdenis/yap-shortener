@@ -1,7 +1,8 @@
 package handlers
 
 import (
-	"io"
+	"encoding/json"
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -11,14 +12,14 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/config"
-	"github.com/msmkdenis/yap-shortener/internal/middleware"
+	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
-	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
-	"github.com/msmkdenis/yap-shortener/internal/service"
+	"github.com/msmkdenis/yap-shortener/internal/model"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
@@ -28,272 +29,182 @@ var cfgMock = &config.Config{
 	FileStoragePath: "/tmp/short-url-db-test.json",
 }
 
-func TestURLHandler(t *testing.T) {
-	logger, _ := zap.NewProduction()
-	jwtManager := utils.InitJWTManager(logger)
-	urlRepository := memory.NewURLRepository(logger)
-	urlService := service.NewURLService(urlRepository, logger)
-
-	e := echo.New()
-
-	h := NewURLHandler(e, urlService, cfgMock.URLPrefix, jwtManager, logger)
-
-	type want struct {
-		code     int
-		location string
-	}
-
-	tests := []struct {
-		name   string
-		method string
-		body   string
-		path   string
-		want   want
-	}{
-		{
-			name:   "positive POST test #1",
-			method: http.MethodPost,
-			body:   "http://fgdgdfg.com/qwpoeipqowei",
-			path:   "http://localhost:8080/",
-			want: want{
-				code: http.StatusCreated,
-			},
-		},
-		{
-			name:   "positive POST test #2",
-			method: http.MethodPost,
-			body:   "http://ip95f7tnksykxx.biz/q3jl16cuadw/viajydc/kp8rl2",
-			path:   "http://localhost:8080/",
-			want: want{
-				code: http.StatusCreated,
-			},
-		},
-		{
-			name:   "negative POST test #2 (empty request)",
-			method: http.MethodPost,
-			body:   "",
-			path:   "http://localhost:8080/",
-			want: want{
-				code: http.StatusBadRequest,
-			},
-		},
-		{
-			name:   "positive GET test #1",
-			method: http.MethodGet,
-			body:   "https://web.telegram.org/a/",
-			path:   "http://localhost:8080/ZDFiODN",
-			want: want{
-				code:     http.StatusTemporaryRedirect,
-				location: "https://web.telegram.org/a/",
-			},
-		},
-		{
-			name:   "negative GET test #1 (wrong id)",
-			method: http.MethodGet,
-			body:   "https://stackoverflow.com/",
-			path:   "http://localhost:8080/918237918273",
-			want: want{
-				code:     http.StatusBadRequest,
-				location: "",
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			switch test.method {
-			case http.MethodGet:
-				preRequest := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", strings.NewReader(test.body))
-				preW := httptest.NewRecorder()
-				c := e.NewContext(preRequest, preW)
-				c.Set("userID", "userID")
-				err := h.AddURL(c)
-				require.NoError(t, err)
-
-				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
-				w := httptest.NewRecorder()
-				b := e.NewContext(request, w)
-				err = h.FindURL(b)
-				require.NoError(t, err)
-				res := w.Result()
-				defer res.Body.Close()
-				assert.Equal(t, test.want.code, res.StatusCode)
-				if res.StatusCode == http.StatusBadRequest {
-					assert.Equal(t, res.Header.Get("Location"), "")
-				}
-
-			case http.MethodPost:
-				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
-				w := httptest.NewRecorder()
-				l := e.NewContext(request, w)
-				l.Set("userID", "userID")
-				err := h.AddURL(l)
-				require.NoError(t, err)
-				res := w.Result()
-				assert.Equal(t, test.want.code, res.StatusCode)
-				defer res.Body.Close()
-				_, err = io.ReadAll(res.Body)
-				require.NoError(t, err)
-			}
-		})
-	}
+type URLHandlerTestSuite struct {
+	suite.Suite
+	h          *URLHandler
+	urlService *mock.MockURLService
+	echo       *echo.Echo
+	ctrl       *gomock.Controller
 }
 
-func TestPostShorten(t *testing.T) {
-	logger, _ := zap.NewProduction()
-	jwtManager := utils.InitJWTManager(logger)
-	urlRepository := memory.NewURLRepository(logger)
-	urlService := service.NewURLService(urlRepository, logger)
-
-	e := echo.New()
-
-	h := NewURLHandler(e, urlService, cfgMock.URLPrefix, jwtManager, logger)
-
-	type want struct {
-		code     int
-		response string
-	}
-
-	tests := []struct {
-		name        string
-		method      string
-		body        string
-		contentType string
-		path        string
-		want        want
-	}{
-		{
-			name:        "positive PostShorten test #1",
-			method:      http.MethodPost,
-			body:        `{"url":"https://www.dns-shop.ru/"}`,
-			contentType: "application/json",
-			path:        "http://localhost:8080/api/shorten",
-			want: want{
-				code:     http.StatusCreated,
-				response: `{"result":"http://localhost:8080/ZmM0NTQ"}` + "\n",
-			},
-		},
-		{
-			name:        "negative PostShorten test #1",
-			method:      http.MethodPost,
-			body:        `{"url":"https://practicum.yandex.ru/"}`,
-			contentType: "",
-			path:        "http://localhost:8080/api/shorten",
-			want: want{
-				code:     http.StatusUnsupportedMediaType,
-				response: "Content-Type header is not application/json",
-			},
-		},
-		{
-			name:        "negative PostShorten test #2",
-			method:      http.MethodPost,
-			body:        `{}`,
-			contentType: "application/json",
-			path:        "http://localhost:8080/api/shorten",
-			want: want{
-				code:     http.StatusBadRequest,
-				response: "Error: Unable to handle empty request",
-			},
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if test.method == http.MethodPost {
-				request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
-				request.Header.Set("Content-Type", test.contentType)
-				w := httptest.NewRecorder()
-				l := e.NewContext(request, w)
-				l.Set("userID", "userID")
-				err := h.AddShorten(l)
-				require.NoError(t, err)
-				res := w.Result()
-				assert.Equal(t, test.want.code, res.StatusCode)
-				defer res.Body.Close()
-				response, err := io.ReadAll(res.Body)
-				assert.Equal(t, test.want.response, string(response))
-				require.NoError(t, err)
-			}
-		})
-	}
-	_ = urlService.DeleteAll
+func TestSuite(t *testing.T) {
+	suite.Run(t, new(URLHandlerTestSuite))
 }
 
-func TestGetURL(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	s := mock.NewMockURLService(ctrl)
-
-	message := "https://practicum.yandex.ru/"
-
-	s.EXPECT().GetByyID(gomock.Any(), gomock.Any()).AnyTimes().Return(message, nil)
-
+func (s *URLHandlerTestSuite) SetupTest() {
+	cfgMock.URLPrefix = "http://localhost:8080"
 	logger, _ := zap.NewProduction()
-
-	e := echo.New()
 	jwtManager := utils.InitJWTManager(logger)
-	h := NewURLHandler(e, s, cfgMock.URLPrefix, jwtManager, logger)
-	defer e.Close()
+	s.ctrl = gomock.NewController(s.T())
+	s.echo = echo.New()
+	s.urlService = mock.NewMockURLService(s.ctrl)
+	s.h = NewURLHandler(s.echo, s.urlService, cfgMock.URLPrefix, jwtManager, logger)
+}
 
-	testCases := []struct {
-		name             string
-		method           string
-		body             string
-		expectedCode     int
-		path             string
-		expectedBody     string
-		expectedLocation string
+func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Unauthorized() {
+	defer func(echo *echo.Echo) {
+		err := echo.Close()
+		assert.NoError(s.T(), err)
+	}(s.echo)
+
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
 	}{
 		{
-			name:             "BadRequest - ID is empty",
-			method:           http.MethodGet,
-			expectedCode:     http.StatusBadRequest,
-			path:             "http://localhost:8080/",
-			expectedBody:     "Error: Unable to handle empty request",
-			expectedLocation: "",
-		},
-		{
-			name:             "TemporaryRedirect - ID is not empty",
-			method:           http.MethodGet,
-			expectedCode:     http.StatusTemporaryRedirect,
-			path:             "http://localhost:8080/MGRkMTk",
-			expectedBody:     "",
-			expectedLocation: "https://practicum.yandex.ru/",
+			name:         "BadRequest - unauthorized",
+			method:       http.MethodDelete,
+			expectedCode: http.StatusNoContent,
+			path:         "http://localhost:8080/api/user/urls",
+			expectedBody: "",
 		},
 	}
 
-	for _, test := range testCases {
-		t.Run(test.name, func(t *testing.T) {
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			w := httptest.NewRecorder()
-			l := e.NewContext(request, w)
-			l.Set("userID", "userID")
-			err := h.FindURL(l)
-			require.NoError(t, err)
-			res := w.Result()
-			assert.Equal(t, test.expectedCode, res.StatusCode)
-			assert.Equal(t, test.expectedLocation, res.Header.Get("Location"))
-			response, err := io.ReadAll(res.Body)
-			res.Body.Close()
-			assert.Equal(t, test.expectedBody, string(response))
-			require.NoError(t, err)
+			s.echo.ServeHTTP(w, request)
+			assert.Equal(t, test.expectedCode, w.Code)
 		})
 	}
 }
 
-func TestGetURLsByUserID_Unauthorized(t *testing.T) {
-	logger, _ := zap.NewProduction()
-	e := echo.New()
-	jwtManager := utils.InitJWTManager(logger)
-	requestLogger := middleware.InitRequestLogger(logger)
-	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
-	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
-	defer e.Close()
+func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_WrongMediaType() {
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "BadRequest - unsupported media type",
+			method:       http.MethodDelete,
+			expectedCode: http.StatusUnsupportedMediaType,
+			path:         "http://localhost:8080/api/user/urls",
+			expectedBody: "",
+		},
+	}
 
-	e.Use(requestLogger.RequestLogger())
-	e.Use(jwtAuth.JWTAuth())
-	e.Use(jwtCheckerCreator.JWTCheckOrCreate())
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().DeleteAllByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
+			request.Header.Set("Content-Type", "")
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			l.Set("userID", "token")
+
+			err := s.h.DeleteAllURLsByUserID(l)
+			assert.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_BadRequest() {
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		requestBody  string
+		expectedBody string
+	}{
+		{
+			name:         "BadRequest - empty request",
+			method:       http.MethodDelete,
+			expectedCode: http.StatusBadRequest,
+			path:         "http://localhost:8080/api/user/urls",
+			requestBody:  "",
+			expectedBody: "",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().DeleteAllByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			r, jsonErr := json.Marshal(test.requestBody)
+			require.NoError(t, jsonErr)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(string(r)))
+			request.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			l.Set("userID", "token")
+
+			err := s.h.DeleteAllURLsByUserID(l)
+			assert.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Success() {
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		requestBody  []string
+		expectedBody string
+	}{
+		{
+			name:         "BadRequest - empty request",
+			method:       http.MethodDelete,
+			expectedCode: http.StatusAccepted,
+			path:         "http://localhost:8080/api/user/urls",
+			requestBody:  []string{"NjQyYTU", "OWUyMzI", "ZjQwMWN"},
+			expectedBody: "",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().DeleteAllByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(3).Return(nil)
+			r, jsonErr := json.Marshal(test.requestBody)
+			require.NoError(t, jsonErr)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(string(r)))
+			request.Header.Set("Content-Type", "application/json")
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			l.Set("userID", "token")
+
+			err := s.h.DeleteAllURLsByUserID(l)
+			assert.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestFindAllURLByUserID_Unauthorized() {
+	defer func(echo *echo.Echo) {
+		err := echo.Close()
+		assert.NoError(s.T(), err)
+	}(s.echo)
 
 	testCaseWithError := []struct {
 		name         string
@@ -313,30 +224,49 @@ func TestGetURLsByUserID_Unauthorized(t *testing.T) {
 	}
 
 	for _, test := range testCaseWithError {
-		t.Run(test.name, func(t *testing.T) {
+		s.T().Run(test.name, func(t *testing.T) {
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			w := httptest.NewRecorder()
-			e.ServeHTTP(w, request)
+			s.echo.ServeHTTP(w, request)
 			assert.Equal(t, test.expectedCode, w.Code)
 		})
 	}
 }
 
-func TestGetURLsByUserID_NoContent(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+func (s *URLHandlerTestSuite) TestFindAllURLByUserID_Success() {
+	defer func(echo *echo.Echo) {
+		err := echo.Close()
+		assert.NoError(s.T(), err)
+	}(s.echo)
 
-	s := mock.NewMockURLService(ctrl)
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "BadRequest - unauthorized",
+			method:       http.MethodGet,
+			expectedCode: http.StatusNoContent,
+			path:         "http://localhost:8080/api/user/urls",
+			expectedBody: "",
+		},
+	}
 
-	logger, _ := zap.NewProduction()
-	e := echo.New()
-	defer e.Close()
-	jwtManager := utils.InitJWTManager(logger)
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
+			w := httptest.NewRecorder()
+			s.echo.ServeHTTP(w, request)
+			assert.Equal(t, test.expectedCode, w.Code)
+		})
+	}
+}
 
-	h := NewURLHandler(e, s, cfgMock.URLPrefix, jwtManager, logger)
-
-	s.EXPECT().GetAllByUserID(gomock.Any(), gomock.Any()).Return(nil, apperrors.ErrURLNotFound)
-
+func (s *URLHandlerTestSuite) TestFindAllURLByUserID_NoContent() {
 	testCaseWithError := []struct {
 		name         string
 		method       string
@@ -355,15 +285,696 @@ func TestGetURLsByUserID_NoContent(t *testing.T) {
 	}
 
 	for _, test := range testCaseWithError {
-		t.Run(test.name, func(t *testing.T) {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().GetAllByUserID(gomock.Any(), gomock.Any()).Times(1).Return(nil, apperrors.ErrURLNotFound)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			w := httptest.NewRecorder()
-			l := e.NewContext(request, w)
+			l := s.echo.NewContext(request, w)
 			l.Set("userID", "token")
-			err := h.FindAllURLByUserID(l)
+
+			err := s.h.FindAllURLByUserID(l)
 			require.NoError(t, err)
+
 			assert.Equal(t, test.expectedCode, w.Code)
 			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestAddBatch_WrongMediaType() {
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "BadRequest - unsupported media type",
+			method:       http.MethodPost,
+			expectedCode: http.StatusUnsupportedMediaType,
+			path:         "http://localhost:8080/api/shorten/batch",
+			expectedBody: "Content-Type header is not application/json",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().AddAll(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			l.Set("userID", "token")
+
+			err := s.h.AddBatch(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestAddBatch_EmptyRequest() {
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         []string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "BadRequest - empty request",
+			method:       http.MethodPost,
+			expectedCode: http.StatusBadRequest,
+			path:         "http://localhost:8080/api/shorten/batch",
+			body:         []string{},
+			expectedBody: "Error: empty batch request",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().AddAll(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			body, jsonErr := json.Marshal(test.body)
+			require.NoError(t, jsonErr)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(string(body)))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			request.Header.Set("Content-Type", "application/json")
+			l.Set("userID", "token")
+
+			err := s.h.AddBatch(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestAddBatch_Success() {
+	shortURL1 := dto.URLBatchResponse{
+		CorrelationID: "1",
+		ShortenedURL:  "1",
+	}
+	shortURL2 := dto.URLBatchResponse{
+		CorrelationID: "2",
+		ShortenedURL:  "2",
+	}
+	shortURLs := []dto.URLBatchResponse{shortURL1, shortURL2}
+
+	fullURL1 := dto.URLBatchRequest{
+		CorrelationID: "1",
+		OriginalURL:   "1",
+	}
+	fullURL2 := dto.URLBatchRequest{
+		CorrelationID: "2",
+		OriginalURL:   "2",
+	}
+	request := []dto.URLBatchRequest{fullURL1, fullURL2}
+
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         []dto.URLBatchRequest
+		expectedCode int
+		path         string
+		expectedBody []dto.URLBatchResponse
+	}{
+		{
+			name:         "Success",
+			method:       http.MethodPost,
+			expectedCode: http.StatusCreated,
+			path:         "http://localhost:8080/api/shorten/batch",
+			body:         request,
+			expectedBody: shortURLs,
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().AddAll(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(shortURLs, nil)
+			body, jsonErr := json.Marshal(test.body)
+			require.NoError(t, jsonErr)
+			req := httptest.NewRequest(test.method, test.path, strings.NewReader(string(body)))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(req, w)
+			req.Header.Set("Content-Type", "application/json")
+			l.Set("userID", "token")
+
+			err := s.h.AddBatch(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			var result []dto.URLBatchResponse
+			jsonErr = json.Unmarshal(w.Body.Bytes(), &result)
+			require.NoError(t, jsonErr)
+			assert.Equal(t, test.expectedBody, result)
+			assert.Equal(t, len(test.expectedBody), len(result))
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestAddShorten_EmptyRequest() {
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         dto.URLRequest
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "BadRequest - empty request",
+			method:       http.MethodPost,
+			expectedCode: http.StatusBadRequest,
+			path:         "http://localhost:8080/api/shorten",
+			body:         dto.URLRequest{},
+			expectedBody: "Error: Unable to handle empty request",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			body, jsonErr := json.Marshal(test.body)
+			require.NoError(t, jsonErr)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(string(body)))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			request.Header.Set("Content-Type", "application/json")
+			l.Set("userID", "token")
+
+			err := s.h.AddShorten(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestAddShorten_WrongMediaType() {
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "BadRequest - unsupported media type",
+			method:       http.MethodPost,
+			expectedCode: http.StatusUnsupportedMediaType,
+			path:         "http://localhost:8080/api/shorten",
+			expectedBody: "Content-Type header is not application/json",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			l.Set("userID", "token")
+
+			err := s.h.AddShorten(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestAddShorten_InternalServerError() {
+	requestBody := dto.URLRequest{URL: "https://example.com"}
+	respErr := errors.New("internal server error")
+
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         dto.URLRequest
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "BadRequest - unsupported media type",
+			method:       http.MethodPost,
+			expectedCode: http.StatusInternalServerError,
+			path:         "http://localhost:8080/api/shorten",
+			body:         requestBody,
+			expectedBody: "Unknown error: internal server error",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, respErr)
+			body, jsonErr := json.Marshal(test.body)
+			require.NoError(t, jsonErr)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(string(body)))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			request.Header.Set("Content-Type", "application/json")
+			l.Set("userID", "token")
+			l.Set("userID", "token")
+
+			err := s.h.AddShorten(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestAddShorten_Success() {
+	requestBody := dto.URLRequest{URL: "https://example.com"}
+	url := &model.URL{Original: "https://example.com", Shortened: "test"}
+	responseBody := dto.URLResponse{Result: url.Shortened}
+
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         dto.URLRequest
+		expectedCode int
+		path         string
+		expectedBody dto.URLResponse
+	}{
+		{
+			name:         "Success",
+			method:       http.MethodPost,
+			expectedCode: http.StatusCreated,
+			path:         "http://localhost:8080/api/shorten",
+			body:         requestBody,
+			expectedBody: responseBody,
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(url, nil)
+			body, jsonErr := json.Marshal(test.body)
+			require.NoError(t, jsonErr)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(string(body)))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			request.Header.Set("Content-Type", "application/json")
+			l.Set("userID", "token")
+			l.Set("userID", "token")
+
+			err := s.h.AddShorten(l)
+			require.NoError(t, err)
+
+			var result dto.URLResponse
+			jsonErr = json.Unmarshal(w.Body.Bytes(), &result)
+			require.NoError(t, jsonErr)
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, result)
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestAddShorten_UrlAlreadyExists() {
+	requestBody := dto.URLRequest{URL: "https://example.com"}
+	url := &model.URL{Original: "https://example.com", Shortened: "test"}
+	responseBody := dto.URLResponse{Result: url.Shortened}
+	mockErr := apperrors.ErrURLAlreadyExists
+
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         dto.URLRequest
+		expectedCode int
+		path         string
+		expectedBody dto.URLResponse
+	}{
+		{
+			name:         "Status conflict - url already exists",
+			method:       http.MethodPost,
+			expectedCode: http.StatusConflict,
+			path:         "http://localhost:8080/api/shorten",
+			body:         requestBody,
+			expectedBody: responseBody,
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(url, mockErr)
+			body, jsonErr := json.Marshal(test.body)
+			require.NoError(t, jsonErr)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(string(body)))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			request.Header.Set("Content-Type", "application/json")
+			l.Set("userID", "token")
+			l.Set("userID", "token")
+
+			err := s.h.AddShorten(l)
+			require.NoError(t, err)
+
+			var result dto.URLResponse
+			jsonErr = json.Unmarshal(w.Body.Bytes(), &result)
+			require.NoError(t, jsonErr)
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, result)
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestAddURL_EmptyRequest() {
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "BadRequest - empty request",
+			method:       http.MethodPost,
+			expectedCode: http.StatusBadRequest,
+			path:         "http://localhost:8080/",
+			body:         "",
+			expectedBody: "Error: Unable to handle empty request",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			request.Header.Set("Content-Type", "application/json")
+			l.Set("userID", "token")
+
+			err := s.h.AddURL(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestAddURL_InternalServerError() {
+	requestBody := "https://example.com"
+	respErr := errors.New("internal server error")
+
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "Internal server error",
+			method:       http.MethodPost,
+			expectedCode: http.StatusInternalServerError,
+			path:         "http://localhost:8080/api/shorten",
+			body:         requestBody,
+			expectedBody: "Unknown error: internal server error",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(nil, respErr)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			request.Header.Set("Content-Type", "application/json")
+			l.Set("userID", "token")
+			l.Set("userID", "token")
+
+			err := s.h.AddURL(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestAddURL_Success() {
+	requestBody := "https://example.com"
+	url := &model.URL{Original: "https://example.com", Shortened: "test"}
+	responseBody := url.Shortened
+
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "Success",
+			method:       http.MethodPost,
+			expectedCode: http.StatusCreated,
+			path:         "http://localhost:8080/",
+			body:         requestBody,
+			expectedBody: responseBody,
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(url, nil)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			request.Header.Set("Content-Type", "application/json")
+			l.Set("userID", "token")
+			l.Set("userID", "token")
+
+			err := s.h.AddURL(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestAddURL_UrlAlreadyExists() {
+	requestBody := "https://example.com"
+	url := &model.URL{Original: "https://example.com", Shortened: "test"}
+	responseBody := url.Shortened
+	mockErr := apperrors.ErrURLAlreadyExists
+
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "Status conflict - URL already exists",
+			method:       http.MethodPost,
+			expectedCode: http.StatusConflict,
+			path:         "http://localhost:8080/",
+			body:         requestBody,
+			expectedBody: responseBody,
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().Add(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1).Return(url, mockErr)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			request.Header.Set("Content-Type", "application/json")
+			l.Set("userID", "token")
+			l.Set("userID", "token")
+
+			err := s.h.AddURL(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestClearALL_InternalServerError() {
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "Internal server error",
+			method:       http.MethodDelete,
+			expectedCode: http.StatusInternalServerError,
+			path:         "http://localhost:8080/",
+			body:         "",
+			expectedBody: "Unknown error: internal server error",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().DeleteAll(gomock.Any()).Times(1).Return(errors.New("internal server error"))
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			l.Set("userID", "token")
+
+			err := s.h.ClearAll(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestClearALL_Success() {
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "Internal server error",
+			method:       http.MethodDelete,
+			expectedCode: http.StatusOK,
+			path:         "http://localhost:8080/",
+			body:         "",
+			expectedBody: "All data deleted",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().DeleteAll(gomock.Any()).Times(1).Return(nil)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			l.Set("userID", "token")
+
+			err := s.h.ClearAll(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestFindURL_Success() {
+	url := &model.URL{Original: "https://example.com", Shortened: "test"}
+	responseBody := url.Original
+
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "Success",
+			method:       http.MethodPost,
+			expectedCode: http.StatusTemporaryRedirect,
+			path:         "http://localhost:8080/test",
+			expectedBody: "",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().GetByyID(gomock.Any(), url.Shortened).Times(1).Return(responseBody, nil)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			request.Header.Set("Content-Type", "application/json")
+			l.Set("userID", "token")
+			l.Set("userID", "token")
+
+			err := s.h.FindURL(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			s.ctrl.Finish()
+		})
+	}
+}
+
+func (s *URLHandlerTestSuite) TestFindURL_EmptyRequest() {
+	testCaseWithError := []struct {
+		name         string
+		method       string
+		body         string
+		expectedCode int
+		path         string
+		expectedBody string
+	}{
+		{
+			name:         "Success",
+			method:       http.MethodPost,
+			expectedCode: http.StatusBadRequest,
+			path:         "http://localhost:8080/",
+			expectedBody: "Error: Unable to handle empty request",
+		},
+	}
+
+	for _, test := range testCaseWithError {
+		s.T().Run(test.name, func(t *testing.T) {
+			s.urlService.EXPECT().GetByyID(gomock.Any(), gomock.Any()).Times(0)
+			request := httptest.NewRequest(test.method, test.path, strings.NewReader(test.body))
+			w := httptest.NewRecorder()
+			l := s.echo.NewContext(request, w)
+			request.Header.Set("Content-Type", "application/json")
+			l.Set("userID", "token")
+			l.Set("userID", "token")
+
+			err := s.h.FindURL(l)
+			require.NoError(t, err)
+
+			assert.Equal(t, test.expectedCode, w.Code)
+			assert.Equal(t, test.expectedBody, w.Body.String())
+			defer s.ctrl.Finish()
 		})
 	}
 }

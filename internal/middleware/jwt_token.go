@@ -25,9 +25,9 @@ func InitJWTCheckerCreator(jwtManager *utils.JWTManager, logger *zap.Logger) *JW
 func (j *JWTCheckerCreator) JWTCheckOrCreate() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			cookie, er := c.Request().Cookie(j.jwtManager.TokenName)
-			if er != nil {
-				j.logger.Warn("token not found, creating new token", zap.Error(er))
+			cookie, cookieErr := c.Request().Cookie(j.jwtManager.TokenName)
+			if cookieErr != nil {
+				j.logger.Info("token not found, creating new token", zap.Error(cookieErr))
 				token := j.setCookieAndReturn(c)
 				newUserID, err := j.jwtManager.GetUserID(token)
 				if err != nil {

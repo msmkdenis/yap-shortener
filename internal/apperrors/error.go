@@ -28,7 +28,7 @@ func NewValueError(message string, caller string, err error) error {
 }
 
 func (v *ValueError) Error() string {
-	return fmt.Sprintf("caller: %s message: %s error: %s", v.caller, v.message, v.err)
+	return fmt.Sprintf("%s %s %s", v.caller, v.message, v.err)
 }
 
 func (v *ValueError) Unwrap() error {
