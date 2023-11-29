@@ -7,7 +7,7 @@ on:
       - main
 
 jobs:
-  devopstest:
+  shortenertests:
     runs-on: ubuntu-latest
     container: golang:1.21
 

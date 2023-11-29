@@ -171,7 +171,7 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Success() {
 		expectedBody string
 	}{
 		{
-			name:         "BadRequest - empty request",
+			name:         "Success",
 			method:       http.MethodDelete,
 			expectedCode: http.StatusAccepted,
 			path:         "http://localhost:8080/api/user/urls",

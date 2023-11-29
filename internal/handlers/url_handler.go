@@ -117,10 +117,10 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 		log.Info("Submitting task", zap.String("delete shortURL", shortURL))
 		url := []string{shortURL}
 		workerPool.Submit(func() {
-			err = h.urlService.DeleteAllByUserID(c.Request().Context(), c.Get("userID").(string), url)
-			if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
-				h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
-			}
+			_ = h.urlService.DeleteAllByUserID(c.Request().Context(), c.Get("userID").(string), url)
+			// if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
+			// 	h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+			// }
 		})
 	}
 
