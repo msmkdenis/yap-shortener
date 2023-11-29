@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"syscall"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -34,20 +35,36 @@ func URLShortenerRun() {
 	e := echo.New()
 	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger)
 
-	go func() {
-		if err := e.Start(cfg.URLServer); err != nil && !errors.Is(err, http.ErrServerClosed) {
-			e.Logger.Fatal("shutting down the server")
-		}
-	}()
+	serverCtx, serverStopCtx := context.WithCancel(context.Background())
 
 	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, os.Interrupt)
-	<-quit
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
-	if err := e.Shutdown(ctx); err != nil {
-		e.Logger.Fatal(err)
+	signal.Notify(quit, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
+	go func() {
+		<-quit
+
+		// Shutdown signal with grace period of 30 seconds
+		shutdownCtx, _ := context.WithTimeout(serverCtx, 30*time.Second)
+
+		go func() {
+			<-shutdownCtx.Done()
+			if errors.Is(shutdownCtx.Err(), context.DeadlineExceeded) {
+				log.Fatal("graceful shutdown timed out.. forcing exit.")
+			}
+		}()
+
+		// Trigger graceful shutdown
+		if errShutdown := e.Shutdown(shutdownCtx); errShutdown != nil {
+			e.Logger.Fatal(errShutdown)
+		}
+		serverStopCtx()
+	}()
+
+	errStart := e.Start(cfg.URLServer)
+	if errStart != nil && !errors.Is(errStart, http.ErrServerClosed) {
+		log.Fatal(err)
 	}
+
+	<-serverCtx.Done()
 }
 
 func initRepository(cfg *config.Config, logger *zap.Logger) service.URLRepository {
