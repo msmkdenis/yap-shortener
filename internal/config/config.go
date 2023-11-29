@@ -35,7 +35,7 @@ func NewConfig() *Config {
 
 	config.RepositoryType = config.newRepositoryType()
 
-	err := godotenv.Load()
+	err := godotenv.Load("../../.env")
 	if err != nil {
 		log.Fatal("Error loading .env file")
 	}
