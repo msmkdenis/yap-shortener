@@ -15,7 +15,7 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v3
       - name: Run unit tests
-        run: go test -tags fast -coverprofile unit.txt -covermode atomic ./...
+        run: go test -race -tags fast -coverprofile unit.txt -covermode atomic ./...
       - name: Upload coverage report to Codecov
         uses: codecov/codecov-action@v3
         with:

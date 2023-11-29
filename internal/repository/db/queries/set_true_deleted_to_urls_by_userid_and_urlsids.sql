@@ -1,1 +1,1 @@
-update url_shortener.url set deleted_flag = true where user_id = $1 and id = any($2::text[])
+update url_shortener.url set deleted_flag = true where user_id = $1 and id = any($2)

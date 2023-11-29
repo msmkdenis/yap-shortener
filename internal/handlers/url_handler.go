@@ -115,16 +115,13 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 	for _, shortURL := range shortURLs {
 		log.Info("Submitting task", zap.String("delete shortURL", shortURL))
 		url := []string{shortURL}
-		workerPool.Submit(func() {
-			err = h.urlService.DeleteAllByUserID(c.Request().Context(), c.Get("userID").(string), url)
-			if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
-				h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
-			}
+		workerPool.Submit(func() error {
+			return h.urlService.DeleteAllByUserID(c.Request().Context(), c.Get("userID").(string), url)
 		})
 	}
 
 	defer workerPool.Stop()
-	workerPool.Wait() // also we can skip this line and return 202 since there is no need in returning info to client
+	workerPool.Wait()
 
 	return c.NoContent(http.StatusAccepted)
 }
