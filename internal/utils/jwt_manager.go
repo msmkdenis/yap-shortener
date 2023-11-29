@@ -3,6 +3,7 @@ package utils
 import (
 	"errors"
 	"fmt"
+	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -15,12 +16,11 @@ import (
 type JWTManager struct {
 	logger    *zap.Logger
 	TokenName string
+	secretKey string
 }
 
 const (
 	tokenExp  = time.Hour * 24
-	secretKey = "supersecretkey"
-	tokenName = "token"
 )
 
 type claims struct {
@@ -31,7 +31,8 @@ type claims struct {
 func InitJWTManager(logger *zap.Logger) *JWTManager {
 	j := &JWTManager{
 		logger:    logger,
-		TokenName: tokenName,
+		TokenName: os.Getenv("TOKEN_NAME"),
+		secretKey: os.Getenv("SECRET_KEY"),
 	}
 	return j
 }
@@ -45,7 +46,7 @@ func (j *JWTManager) BuildJWTString() (string, error) {
 	})
 
 	// создаём строку токена
-	tokenString, err := token.SignedString([]byte(secretKey))
+	tokenString, err := token.SignedString([]byte(j.secretKey))
 	if err != nil {
 		return "", err
 	}
@@ -60,7 +61,7 @@ func (j *JWTManager) GetUserID(tokenString string) (string, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, apperrors.NewValueError(fmt.Sprintf("unexpected signing method: %v", t.Header["alg"]), Caller(), errors.New("unexpected signing method"))
 			}
-			return []byte(secretKey), nil
+			return []byte(j.secretKey), nil
 		})
 	if err != nil {
 		return "", err

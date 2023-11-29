@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"runtime"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -110,17 +109,17 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
 	}
 
-	workerPool := utils.NewWorkerPool(runtime.GOMAXPROCS(-1), h.logger)
+	workerPool := utils.NewWorkerPool(h.logger)
 	workerPool.Start()
 
 	for _, shortURL := range shortURLs {
 		log.Info("Submitting task", zap.String("delete shortURL", shortURL))
 		url := []string{shortURL}
 		workerPool.Submit(func() {
-			_ = h.urlService.DeleteAllByUserID(c.Request().Context(), c.Get("userID").(string), url)
-			// if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
-			// 	h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
-			// }
+			err = h.urlService.DeleteAllByUserID(c.Request().Context(), c.Get("userID").(string), url)
+			if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
+				h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+			}
 		})
 	}
 

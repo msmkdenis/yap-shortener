@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"os"
+	"strconv"
 	"sync"
 
 	"go.uber.org/zap"
@@ -13,7 +15,13 @@ type WorkerPool struct {
 	logger    *zap.Logger
 }
 
-func NewWorkerPool(workers int, logger *zap.Logger) *WorkerPool {
+func NewWorkerPool(logger *zap.Logger) *WorkerPool {
+	workersEnv := os.Getenv("WORKERS")
+	workers, err := strconv.Atoi(workersEnv)
+	if err != nil {
+		workers = 100
+	}
+
 	return &WorkerPool{
 		workers:   workers,
 		taskQueue: make(chan func()),
