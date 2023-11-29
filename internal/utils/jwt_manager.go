@@ -27,11 +27,11 @@ type claims struct {
 	UserID string
 }
 
-func InitJWTManager(logger *zap.Logger) *JWTManager {
+func InitJWTManager(tokenName string, secretKey string, logger *zap.Logger) *JWTManager {
 	j := &JWTManager{
 		logger:    logger,
-		TokenName: "token",
-		secretKey: "supersecretkey",
+		TokenName: tokenName,
+		secretKey: secretKey,
 	}
 	return j
 }

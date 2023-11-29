@@ -27,6 +27,8 @@ var cfgMock = &config.Config{
 	URLServer:       "8080",
 	URLPrefix:       "http://localhost:8080",
 	FileStoragePath: "/tmp/short-url-db-test.json",
+	TokenName:       "test",
+	SecretKey:       "test",
 }
 
 type URLHandlerTestSuite struct {
@@ -44,7 +46,7 @@ func TestSuite(t *testing.T) {
 func (s *URLHandlerTestSuite) SetupTest() {
 	cfgMock.URLPrefix = "http://localhost:8080"
 	logger, _ := zap.NewProduction()
-	jwtManager := utils.InitJWTManager(logger)
+	jwtManager := utils.InitJWTManager(cfgMock.TokenName, cfgMock.SecretKey, logger)
 	s.ctrl = gomock.NewController(s.T())
 	s.echo = echo.New()
 	s.urlService = mock.NewMockURLService(s.ctrl)

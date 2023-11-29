@@ -27,7 +27,7 @@ func URLShortenerRun() {
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
-	jwtManager := utils.InitJWTManager(logger)
+	jwtManager := utils.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
 	repository := initRepository(&cfg, logger)
 	urlService := service.NewURLService(repository, logger)
 

@@ -19,6 +19,8 @@ type Config struct {
 	FileStoragePath string
 	DataBaseDSN     string
 	RepositoryType  Repository
+	SecretKey       string
+	TokenName       string
 }
 
 func NewConfig() *Config {
@@ -47,12 +49,20 @@ func (c *Config) parseFlags() {
 	var DataBaseDSN string
 	flag.StringVar(&DataBaseDSN, "d", "", "Enter url to connect database as host=host port=port user=postgres password=postgres dbname=dbname sslmode=disable Or use DATABASE_DSN env")
 
+	var SecretKey string
+	flag.StringVar(&SecretKey, "s", "supersecretkey", "Enter secret key Or use SECRET_KEY env")
+
+	var TokenName string
+	flag.StringVar(&TokenName, "t", "token", "Enter token name Or use TOKEN_NAME env")
+
 	flag.Parse()
 
 	c.URLServer = URLServer
 	c.URLPrefix = URLPrefix
 	c.FileStoragePath = FileStoragePath
 	c.DataBaseDSN = DataBaseDSN
+	c.SecretKey = SecretKey
+	c.TokenName = TokenName
 }
 
 func (c *Config) parseEnv() {
@@ -70,6 +80,14 @@ func (c *Config) parseEnv() {
 
 	if envDataBaseDSN := os.Getenv("DATABASE_DSN"); envDataBaseDSN != "" {
 		c.DataBaseDSN = envDataBaseDSN
+	}
+
+	if envSecretKey := os.Getenv("SECRET_KEY"); envSecretKey != "" {
+		c.SecretKey = envSecretKey
+	}
+
+	if envTokenName := os.Getenv("TOKEN_NAME"); envTokenName != "" {
+		c.TokenName = envTokenName
 	}
 }
 
