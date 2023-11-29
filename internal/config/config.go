@@ -2,7 +2,10 @@ package config
 
 import (
 	"flag"
+	"log"
 	"os"
+
+	"github.com/joho/godotenv"
 )
 
 type Repository uint
@@ -31,6 +34,11 @@ func NewConfig() *Config {
 	config.parseEnv()
 
 	config.RepositoryType = config.newRepositoryType()
+
+	err := godotenv.Load("../../.env")
+	if err != nil {
+		log.Fatal("Error loading .env file")
+	}
 
 	return &config
 }

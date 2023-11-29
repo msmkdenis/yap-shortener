@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/labstack/gommon/log"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
@@ -24,11 +23,6 @@ import (
 )
 
 func URLShortenerRun() {
-	err := godotenv.Load("../../.env")
-	if err != nil {
-		log.Fatal("Error loading .env file")
-	}
-
 	cfg := *config.NewConfig()
 	logger, err := zap.NewProduction()
 	if err != nil {
