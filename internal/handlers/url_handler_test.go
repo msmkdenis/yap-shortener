@@ -181,6 +181,7 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Success() {
 	}
 
 	for _, test := range testCaseWithError {
+		test := test
 		s.T().Run(test.name, func(t *testing.T) {
 			s.urlService.EXPECT().DeleteAllByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(3).Return(nil)
 			r, jsonErr := json.Marshal(test.requestBody)
