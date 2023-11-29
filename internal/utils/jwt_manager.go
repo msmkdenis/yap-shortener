@@ -3,7 +3,6 @@ package utils
 import (
 	"errors"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -31,8 +30,8 @@ type claims struct {
 func InitJWTManager(logger *zap.Logger) *JWTManager {
 	j := &JWTManager{
 		logger:    logger,
-		TokenName: os.Getenv("TOKEN_NAME"),
-		secretKey: os.Getenv("SECRET_KEY"),
+		TokenName: "token",
+		secretKey: "supersecretkey",
 	}
 	return j
 }

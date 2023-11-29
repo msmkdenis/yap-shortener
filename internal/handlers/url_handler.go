@@ -109,7 +109,7 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
 	}
 
-	workerPool := utils.NewWorkerPool(h.logger)
+	workerPool := utils.NewWorkerPool(100, h.logger)
 	workerPool.Start()
 
 	for _, shortURL := range shortURLs {
