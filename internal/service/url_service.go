@@ -38,7 +38,7 @@ func NewURLService(repository URLRepository, logger *zap.Logger) *URLUseCase {
 func (u *URLUseCase) GetAllByUserID(ctx context.Context, userID string) ([]dto.URLBatchResponseByUserID, error) {
 	urls, err := u.repository.SelectAllByUserID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
+		return nil, fmt.Errorf("%s %w", utils.Caller(), err)
 	}
 
 	response := make([]dto.URLBatchResponseByUserID, len(urls))
@@ -55,7 +55,7 @@ func (u *URLUseCase) GetAllByUserID(ctx context.Context, userID string) ([]dto.U
 func (u *URLUseCase) DeleteURLByUserID(ctx context.Context, userID string, shortURL string) error {
 	err := u.repository.DeleteURLByUserID(ctx, userID, shortURL)
 	if err != nil {
-		return fmt.Errorf("caller: %s %w", utils.Caller(), err)
+		return fmt.Errorf("%s %w", utils.Caller(), err)
 	}
 
 	return nil
@@ -73,12 +73,12 @@ func (u *URLUseCase) Add(ctx context.Context, s, host string, userID string) (*m
 
 	existingURL, err := u.repository.SelectByID(ctx, urlKey)
 	if err == nil {
-		return existingURL, apperrors.ErrURLAlreadyExists
+		return existingURL, fmt.Errorf("%s %w", utils.Caller(), apperrors.ErrURLAlreadyExists)
 	}
 
 	savedURL, err := u.repository.Insert(ctx, *url)
 	if err != nil {
-		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
+		return nil, fmt.Errorf("%s %w", utils.Caller(), err)
 	}
 
 	return savedURL, nil
@@ -87,7 +87,7 @@ func (u *URLUseCase) Add(ctx context.Context, s, host string, userID string) (*m
 func (u *URLUseCase) GetAll(ctx context.Context) ([]string, error) {
 	urls, err := u.repository.SelectAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
+		return nil, fmt.Errorf("%s %w", utils.Caller(), err)
 	}
 
 	originalURLs := []string{}
@@ -100,7 +100,7 @@ func (u *URLUseCase) GetAll(ctx context.Context) ([]string, error) {
 
 func (u *URLUseCase) DeleteAll(ctx context.Context) error {
 	if err := u.repository.DeleteAll(ctx); err != nil {
-		return fmt.Errorf("caller: %s %w", utils.Caller(), err)
+		return fmt.Errorf("%s %w", utils.Caller(), err)
 	}
 	return nil
 }
@@ -108,7 +108,7 @@ func (u *URLUseCase) DeleteAll(ctx context.Context) error {
 func (u *URLUseCase) GetByyID(ctx context.Context, key string) (string, error) {
 	url, err := u.repository.SelectByID(ctx, key)
 	if err != nil {
-		return "", fmt.Errorf("caller: %s %w", utils.Caller(), err)
+		return "", fmt.Errorf("%s %w", utils.Caller(), err)
 	}
 
 	if url.DeletedFlag {
@@ -145,7 +145,7 @@ func (u *URLUseCase) AddAll(ctx context.Context, urls []dto.URLBatchRequest, hos
 
 	savedURLs, err := u.repository.InsertAllOrUpdate(ctx, urlsToSave)
 	if err != nil {
-		return nil, fmt.Errorf("caller: %s %w", utils.Caller(), err)
+		return nil, fmt.Errorf("%s %w", utils.Caller(), err)
 	}
 
 	response := make([]dto.URLBatchResponse, 0, len(savedURLs))

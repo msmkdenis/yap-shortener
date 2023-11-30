@@ -6,11 +6,12 @@ import (
 )
 
 var (
-	ErrURLNotFound      = errors.New("url not found")
-	ErrEmptyRequest     = errors.New("unable to handle empty request")
-	ErrDuplicatedKeys   = errors.New("duplicated keys in batch")
-	ErrURLAlreadyExists = errors.New("url already exists")
-	ErrURLDeleted       = errors.New("url deleted")
+	ErrURLNotFound                  = errors.New("url not found")
+	ErrUnableToGetUserIDFromContext = errors.New("unable to get user id from context")
+	ErrEmptyRequest                 = errors.New("unable to handle empty request")
+	ErrDuplicatedKeys               = errors.New("duplicated keys in batch")
+	ErrURLAlreadyExists             = errors.New("url already exists")
+	ErrURLDeleted                   = errors.New("url deleted")
 )
 
 type ValueError struct {
