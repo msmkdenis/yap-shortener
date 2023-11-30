@@ -26,7 +26,17 @@ func NewURLRepository(logger *zap.Logger) *URLRepository {
 	}
 }
 
-func (r *URLRepository) DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) error {
+func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, shortURL string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	if url, ok := r.storage[shortURL]; ok {
+		if url.UserID == userID {
+			url.DeletedFlag = true
+			r.storage[shortURL] = url
+		}
+	}
+
 	return nil
 }
 

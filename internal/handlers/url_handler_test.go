@@ -106,7 +106,7 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_WrongMediaType() {
 
 	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
-			s.urlService.EXPECT().DeleteAllByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			s.urlService.EXPECT().DeleteURLByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			request.Header.Set("Content-Type", "")
 			w := httptest.NewRecorder()
@@ -144,7 +144,7 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_BadRequest() {
 
 	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
-			s.urlService.EXPECT().DeleteAllByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
+			s.urlService.EXPECT().DeleteURLByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(0)
 			r, jsonErr := json.Marshal(test.requestBody)
 			require.NoError(t, jsonErr)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(string(r)))
@@ -185,7 +185,7 @@ func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Success() {
 	for _, test := range testCases {
 		test := test
 		s.T().Run(test.name, func(t *testing.T) {
-			s.urlService.EXPECT().DeleteAllByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(3).Return(nil)
+			s.urlService.EXPECT().DeleteURLByUserID(gomock.Any(), gomock.Any(), gomock.Any()).Times(3).Return(nil)
 			r, jsonErr := json.Marshal(test.requestBody)
 			require.NoError(t, jsonErr)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(string(r)))

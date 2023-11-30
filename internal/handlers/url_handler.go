@@ -33,7 +33,7 @@ type URLService interface {
 	GetAll(ctx context.Context) ([]string, error)
 	GetAllByUserID(ctx context.Context, userID string) ([]dto.URLBatchResponseByUserID, error)
 	DeleteAll(ctx context.Context) error
-	DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) error
+	DeleteURLByUserID(ctx context.Context, userID string, shortURLs string) error
 	GetByyID(ctx context.Context, key string) (string, error)
 	Ping(ctx context.Context) error
 }
@@ -114,9 +114,9 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 
 	for _, shortURL := range shortURLs {
 		log.Info("Submitting task", zap.String("delete shortURL", shortURL))
-		url := []string{shortURL}
+		url := shortURL
 		workerPool.Submit(func() error {
-			return h.urlService.DeleteAllByUserID(c.Request().Context(), c.Get("userID").(string), url)
+			return h.urlService.DeleteURLByUserID(c.Request().Context(), c.Get("userID").(string), url)
 		})
 	}
 

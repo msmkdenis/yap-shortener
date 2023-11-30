@@ -56,7 +56,50 @@ func NewFileURLRepository(path string, logger *zap.Logger) (*URLRepository, erro
 	}, nil
 }
 
-func (r *URLRepository) DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) error {
+func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, shortURL string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+
+	r.logger.Info(fmt.Sprintf("Opening file: %s", r.fileStorage.Name()))
+	file, openFileErr := os.OpenFile(r.fileStorage.Name(), os.O_RDWR|os.O_APPEND, perm)
+	if openFileErr != nil {
+		return apperrors.NewValueError("unable to open file", utils.Caller(), openFileErr)
+	}
+	defer file.Close()
+
+	// Read all urls from file, update with new flag, store urls to save (with updated ones) in urlsToSave slice
+	decoder := json.NewDecoder(file)
+	var urlsToSave []model.URL
+	for {
+		var existingURL model.URL
+		err := decoder.Decode(&existingURL)
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return apperrors.NewValueError("unable to decode from file", utils.Caller(), err)
+		}
+		if existingURL.UserID == userID && existingURL.ID == shortURL {
+			existingURL.DeletedFlag = true
+		}
+
+		urlsToSave = append(urlsToSave, existingURL)
+	}
+
+	// Clear file in order to prepare for further encoding
+	if err := os.Truncate(r.fileStorage.Name(), 0); err != nil {
+		return apperrors.NewValueError(fmt.Sprintf("Failed to truncate file: %s", r.fileStorage.Name()), utils.Caller(), err)
+	}
+
+	// Encode urlsToSave to file
+	encoder := json.NewEncoder(file)
+	for _, url := range urlsToSave {
+		err := encoder.Encode(url)
+		if err != nil {
+			return apperrors.NewValueError("unable to encode to file", utils.Caller(), err)
+		}
+	}
+
 	return nil
 }
 

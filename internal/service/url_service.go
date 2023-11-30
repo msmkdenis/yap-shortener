@@ -19,7 +19,7 @@ type URLRepository interface {
 	SelectAll(ctx context.Context) ([]model.URL, error)
 	SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error)
 	DeleteAll(ctx context.Context) error
-	DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) error
+	DeleteURLByUserID(ctx context.Context, userID string, shortURLs string) error
 	Ping(ctx context.Context) error
 }
 
@@ -52,8 +52,8 @@ func (u *URLUseCase) GetAllByUserID(ctx context.Context, userID string) ([]dto.U
 	return response, nil
 }
 
-func (u *URLUseCase) DeleteAllByUserID(ctx context.Context, userID string, shortURLs []string) error {
-	err := u.repository.DeleteAllByUserID(ctx, userID, shortURLs)
+func (u *URLUseCase) DeleteURLByUserID(ctx context.Context, userID string, shortURL string) error {
+	err := u.repository.DeleteURLByUserID(ctx, userID, shortURL)
 	if err != nil {
 		return fmt.Errorf("caller: %s %w", utils.Caller(), err)
 	}

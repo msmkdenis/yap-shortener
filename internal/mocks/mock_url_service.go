@@ -80,18 +80,18 @@ func (mr *MockURLServiceMockRecorder) DeleteAll(arg0 interface{}) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAll", reflect.TypeOf((*MockURLService)(nil).DeleteAll), arg0)
 }
 
-// DeleteAllByUserID mocks base method.
-func (m *MockURLService) DeleteAllByUserID(arg0 context.Context, arg1 string, arg2 []string) error {
+// DeleteURLByUserID mocks base method.
+func (m *MockURLService) DeleteURLByUserID(arg0 context.Context, arg1, arg2 string) error {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeleteAllByUserID", arg0, arg1, arg2)
+	ret := m.ctrl.Call(m, "DeleteURLByUserID", arg0, arg1, arg2)
 	ret0, _ := ret[0].(error)
 	return ret0
 }
 
-// DeleteAllByUserID indicates an expected call of DeleteAllByUserID.
-func (mr *MockURLServiceMockRecorder) DeleteAllByUserID(arg0, arg1, arg2 interface{}) *gomock.Call {
+// DeleteURLByUserID indicates an expected call of DeleteURLByUserID.
+func (mr *MockURLServiceMockRecorder) DeleteURLByUserID(arg0, arg1, arg2 interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteAllByUserID", reflect.TypeOf((*MockURLService)(nil).DeleteAllByUserID), arg0, arg1, arg2)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeleteURLByUserID", reflect.TypeOf((*MockURLService)(nil).DeleteURLByUserID), arg0, arg1, arg2)
 }
 
 // GetAll mocks base method.
