@@ -43,7 +43,7 @@ func URLShortenerRun() {
 		<-quit
 
 		// Shutdown signal with grace period of 30 seconds
-		shutdownCtx, cancel := context.WithTimeout(serverCtx, 30*time.Second)
+		shutdownCtx, cancel := context.WithTimeout(serverCtx, 5*time.Second)
 		defer cancel()
 
 		go func() {

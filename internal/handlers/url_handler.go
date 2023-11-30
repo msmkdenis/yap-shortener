@@ -111,17 +111,15 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 
 	workerPool := utils.NewWorkerPool(100, h.logger)
 	workerPool.Start()
+	defer workerPool.Stop()
 
 	for _, shortURL := range shortURLs {
 		log.Info("Submitting task", zap.String("delete shortURL", shortURL))
 		url := shortURL
 		workerPool.Submit(func() error {
-			return h.urlService.DeleteURLByUserID(c.Request().Context(), c.Get("userID").(string), url)
+			return h.urlService.DeleteURLByUserID(context.WithoutCancel(c.Request().Context()), c.Get("userID").(string), url)
 		})
 	}
-
-	defer workerPool.Stop()
-	workerPool.Wait()
 
 	return c.NoContent(http.StatusAccepted)
 }

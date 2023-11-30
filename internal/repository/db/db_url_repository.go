@@ -60,6 +60,7 @@ func (r *PostgresURLRepository) Ping(ctx context.Context) error {
 }
 
 func (r *PostgresURLRepository) DeleteURLByUserID(ctx context.Context, userID string, shortURLs string) error {
+	r.logger.Info("DeleteURLByUserID", zap.String("userID", userID), zap.String("shortURLs", shortURLs))
 	tx, err := r.PostgresPool.db.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
 	if err != nil {
 		return apperrors.NewValueError("unable to start transaction", utils.Caller(), err)

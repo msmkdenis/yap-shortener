@@ -1,17 +1,16 @@
 package utils
 
 import (
-	"sync"
-
 	"go.uber.org/zap"
+	"sync"
 )
 
 type WorkerPool struct {
 	workers   int
 	taskQueue chan func() error
 	errChanel chan error
-	wg        sync.WaitGroup
 	logger    *zap.Logger
+	wg        sync.WaitGroup
 }
 
 func NewWorkerPool(workers int, logger *zap.Logger) *WorkerPool {
@@ -20,14 +19,15 @@ func NewWorkerPool(workers int, logger *zap.Logger) *WorkerPool {
 		taskQueue: make(chan func() error),
 		logger:    logger,
 		errChanel: make(chan error),
+		wg:        sync.WaitGroup{},
 	}
 }
 
 func (wp *WorkerPool) Start() {
+	go wp.logError()
 	for i := 0; i < wp.workers; i++ {
 		go wp.runWorker()
 	}
-	wp.logError()
 }
 
 func (wp *WorkerPool) runWorker() {
@@ -41,13 +41,11 @@ func (wp *WorkerPool) runWorker() {
 }
 
 func (wp *WorkerPool) logError() {
-	for i := 0; i < wp.workers; i++ {
-		go func() {
-			for err := range wp.errChanel {
-				wp.logger.Error("WorkPoolTaskError", zap.Error(err))
-			}
-		}()
+	for err := range wp.errChanel {
+		wp.logger.Error("worker error", zap.Error(err))
 	}
+	wp.wg.Wait() // wait for all workers to finish & and all errors to be logged
+	close(wp.errChanel)
 }
 
 func (wp *WorkerPool) Submit(task func() error) {
@@ -57,9 +55,4 @@ func (wp *WorkerPool) Submit(task func() error) {
 
 func (wp *WorkerPool) Stop() {
 	close(wp.taskQueue)
-	close(wp.errChanel)
-}
-
-func (wp *WorkerPool) Wait() {
-	wp.wg.Wait()
 }
