@@ -7,33 +7,32 @@ import (
 
 type Repository uint
 
-const(
+const (
 	DataBaseRepository Repository = iota + 1
 	FileRepository
 	MemoryRepostiory
 )
 
 type Config struct {
-	URLServer          string
-	URLPrefix          string
-	FileStoragePath    string
-	DataBaseDSN        string
-	RepositoryType     Repository
-
+	URLServer       string
+	URLPrefix       string
+	FileStoragePath string
+	DataBaseDSN     string
+	RepositoryType  Repository
+	SecretKey       string
+	TokenName       string
 }
 
 func NewConfig() *Config {
-
-	var config = Config{
-		URLServer:       "8080",
-		URLPrefix:       "http://localhost:8080",
+	config := Config{
+		URLServer: "8080",
+		URLPrefix: "http://localhost:8080",
 	}
 
 	config.parseFlags()
 	config.parseEnv()
 
 	config.RepositoryType = config.newRepositoryType()
-
 	return &config
 }
 
@@ -50,16 +49,23 @@ func (c *Config) parseFlags() {
 	var DataBaseDSN string
 	flag.StringVar(&DataBaseDSN, "d", "", "Enter url to connect database as host=host port=port user=postgres password=postgres dbname=dbname sslmode=disable Or use DATABASE_DSN env")
 
+	var SecretKey string
+	flag.StringVar(&SecretKey, "s", "supersecretkey", "Enter secret key Or use SECRET_KEY env")
+
+	var TokenName string
+	flag.StringVar(&TokenName, "t", "token", "Enter token name Or use TOKEN_NAME env")
+
 	flag.Parse()
 
 	c.URLServer = URLServer
 	c.URLPrefix = URLPrefix
 	c.FileStoragePath = FileStoragePath
 	c.DataBaseDSN = DataBaseDSN
+	c.SecretKey = SecretKey
+	c.TokenName = TokenName
 }
 
 func (c *Config) parseEnv() {
-
 	if envURLServer := os.Getenv("SERVER_ADDRESS"); envURLServer != "" {
 		c.URLServer = envURLServer
 	}
@@ -74,6 +80,14 @@ func (c *Config) parseEnv() {
 
 	if envDataBaseDSN := os.Getenv("DATABASE_DSN"); envDataBaseDSN != "" {
 		c.DataBaseDSN = envDataBaseDSN
+	}
+
+	if envSecretKey := os.Getenv("SECRET_KEY"); envSecretKey != "" {
+		c.SecretKey = envSecretKey
+	}
+
+	if envTokenName := os.Getenv("TOKEN_NAME"); envTokenName != "" {
+		c.TokenName = envTokenName
 	}
 }
 

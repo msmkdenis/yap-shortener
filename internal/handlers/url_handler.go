@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,46 +9,131 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
+	"go.uber.org/zap"
+
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 	"github.com/msmkdenis/yap-shortener/internal/middleware"
-	"github.com/msmkdenis/yap-shortener/internal/service"
+	"github.com/msmkdenis/yap-shortener/internal/model"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
-	"go.uber.org/zap"
-
-	"github.com/labstack/echo/v4"
 )
 
 type URLHandler struct {
-	urlService service.URLService
+	urlService URLService
 	urlPrefix  string
+	jwtManager *utils.JWTManager
 	logger     *zap.Logger
 }
 
-func NewURLHandler(e *echo.Echo, service service.URLService, urlPrefix string, logger *zap.Logger) *URLHandler {
+type URLService interface {
+	Add(ctx context.Context, s string, host string, userID string) (*model.URL, error)
+	AddAll(ctx context.Context, urls []dto.URLBatchRequest, host string, userID string) ([]dto.URLBatchResponse, error)
+	GetAll(ctx context.Context) ([]string, error)
+	GetAllByUserID(ctx context.Context, userID string) ([]dto.URLBatchResponseByUserID, error)
+	DeleteAll(ctx context.Context) error
+	DeleteURLByUserID(ctx context.Context, userID string, shortURLs string) error
+	GetByyID(ctx context.Context, key string) (string, error)
+	Ping(ctx context.Context) error
+}
+
+func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, jwtManager *utils.JWTManager, logger *zap.Logger) *URLHandler {
 	handler := &URLHandler{
 		urlService: service,
 		urlPrefix:  urlPrefix,
+		jwtManager: jwtManager,
 		logger:     logger,
 	}
 
 	requestLogger := middleware.InitRequestLogger(logger)
+	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
+	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
 
 	e.Use(requestLogger.RequestLogger())
 	e.Use(middleware.Compress())
 	e.Use(middleware.Decompress())
 
-	e.POST("/api/shorten", handler.AddShorten)
-	e.POST("/", handler.AddURL)
-	e.POST("/api/shorten/batch", handler.AddBatch)
+	public := e.Group("/", jwtCheckerCreator.JWTCheckOrCreate())
+	public.POST("api/shorten", handler.AddShorten)
+	public.POST("", handler.AddURL)
+	public.POST("api/shorten/batch", handler.AddBatch)
 
-	e.GET("/*", handler.FindURL)
-	e.GET("/", handler.FindAll)
-	e.GET("/ping", handler.Ping)
+	public.GET("*", handler.FindURL)
+	public.GET("", handler.FindAll)
+	public.GET("ping", handler.Ping)
 
-	e.DELETE("/", handler.ClearAll)
+	public.DELETE("", handler.ClearAll)
+
+	protected := e.Group("/api/user", jwtAuth.JWTAuth())
+	protected.GET("/urls", handler.FindAllURLByUserID)
+	protected.DELETE("/urls", handler.DeleteAllURLsByUserID)
 
 	return handler
+}
+
+func (h *URLHandler) FindAllURLByUserID(c echo.Context) error {
+	userID, ok := c.Get("userID").(string)
+	if !ok {
+		h.logger.Error("Internal server error", zap.Error(apperrors.ErrUnableToGetUserIDFromContext))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	savedURLs, err := h.urlService.GetAllByUserID(c.Request().Context(), userID)
+	if err != nil && !errors.Is(err, apperrors.ErrURLNotFound) {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
+	}
+
+	if errors.Is(err, apperrors.ErrURLNotFound) {
+		h.logger.Warn("StatusNoContent: urls not found", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
+		return c.NoContent(http.StatusNoContent)
+	}
+
+	return c.JSON(http.StatusOK, savedURLs)
+}
+
+func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
+	header := c.Request().Header.Get("Content-Type")
+	if header != "application/json" {
+		msg := "Content-Type header is not application/json"
+		h.logger.Error("StatusUnsupportedMediaType: " + msg)
+		return c.String(http.StatusUnsupportedMediaType, msg)
+	}
+
+	body, err := io.ReadAll(c.Request().Body)
+	if err != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
+		return c.String(http.StatusBadRequest, fmt.Sprintf("Error: Unknown error, unable to read request %s", err))
+	}
+
+	var shortURLs []string
+	err = json.Unmarshal(body, &shortURLs)
+	if err != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
+		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
+	}
+
+	userID, ok := c.Get("userID").(string)
+	if !ok {
+		h.logger.Error("Internal server error", zap.Error(apperrors.ErrUnableToGetUserIDFromContext))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	workerPool := utils.NewWorkerPool(100, h.logger)
+	workerPool.Start()
+	defer workerPool.Stop()
+
+	for _, shortURL := range shortURLs {
+		log.Info("Submitting task", zap.String("delete shortURL", shortURL))
+		url := shortURL
+		userID := userID
+		workerPool.Submit(func() error {
+			return h.urlService.DeleteURLByUserID(context.WithoutCancel(c.Request().Context()), userID, url)
+		})
+	}
+
+	return c.NoContent(http.StatusAccepted)
 }
 
 func (h *URLHandler) AddBatch(c echo.Context) error {
@@ -60,25 +146,26 @@ func (h *URLHandler) AddBatch(c echo.Context) error {
 
 	body, err := io.ReadAll(c.Request().Body)
 	if err != nil {
-		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.String(http.StatusBadRequest, fmt.Sprintf("Error: Unknown error, unable to read request %s", err))
 	}
 
-	var urlBatchRequest []dto.URLBatchRequestType
-	err = json.Unmarshal([]byte(body), &urlBatchRequest)
+	var urlBatchRequest []dto.URLBatchRequest
+	err = json.Unmarshal(body, &urlBatchRequest)
 	if err != nil {
-		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
 	}
 
 	if len(urlBatchRequest) == 0 {
-		h.logger.Error("StatusBadRequest: empty batch request", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Error("StatusBadRequest: empty batch request", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.String(http.StatusBadRequest, "Error: empty batch request")
 	}
 
-	savedURLs, err := h.urlService.AddAll(c.Request().Context(), urlBatchRequest, h.urlPrefix)
+	userID := c.Get("userID").(string)
+	savedURLs, err := h.urlService.AddAll(c.Request().Context(), urlBatchRequest, h.urlPrefix, userID)
 	if err != nil {
-		h.logger.Error("StatusInternalServerError: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Error("StatusInternalServerError: unknown error", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
 
@@ -93,36 +180,42 @@ func (h *URLHandler) AddShorten(c echo.Context) error {
 		return c.String(http.StatusUnsupportedMediaType, msg)
 	}
 
-	body, err := io.ReadAll(c.Request().Body)
-	if err != nil {
-		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
-		return c.String(http.StatusBadRequest, fmt.Sprintf("Error: Unknown error, unable to read request %s", err))
+	body, readBodyErr := io.ReadAll(c.Request().Body)
+	if readBodyErr != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("%s %w", utils.Caller(), readBodyErr)))
+		return c.String(http.StatusBadRequest, fmt.Sprintf("Error: Unknown error, unable to read request %s", readBodyErr))
 	}
 
-	var urlRequest dto.URLRequestType
-	err = json.Unmarshal(body, &urlRequest)
-	if err != nil {
-		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+	var urlRequest dto.URLRequest
+	unmarshalErr := json.Unmarshal(body, &urlRequest)
+	if unmarshalErr != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("%s %w", utils.Caller(), unmarshalErr)))
 		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
 	}
 
 	if err := h.checkRequest(urlRequest.URL); err != nil {
-		h.logger.Error("StatusBadRequest: unable to handle empty request", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Error("StatusBadRequest: unable to handle empty request", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	url, err := h.urlService.Add(c.Request().Context(), urlRequest.URL, h.urlPrefix)
+	userID, ok := c.Get("userID").(string)
+	if !ok {
+		h.logger.Error("Internal server error", zap.Error(apperrors.ErrUnableToGetUserIDFromContext))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	url, err := h.urlService.Add(c.Request().Context(), urlRequest.URL, h.urlPrefix, userID)
 	if err != nil && !errors.Is(err, apperrors.ErrURLAlreadyExists) {
-		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
 
-	response := &dto.URLResponseType{
+	response := &dto.URLResponse{
 		Result: url.Shortened,
 	}
 
 	if errors.Is(err, apperrors.ErrURLAlreadyExists) {
-		h.logger.Warn("StatusConflict: url already exists", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Warn("StatusConflict: url already exists", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.JSON(http.StatusConflict, response)
 	}
 
@@ -130,25 +223,31 @@ func (h *URLHandler) AddShorten(c echo.Context) error {
 }
 
 func (h *URLHandler) AddURL(c echo.Context) error {
-	body, err := io.ReadAll(c.Request().Body)
-	if err != nil {
-		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+	body, readErr := io.ReadAll(c.Request().Body)
+	if readErr != nil {
+		h.logger.Error("StatusBadRequest: unknown error", zap.Error(fmt.Errorf("%s %w", utils.Caller(), readErr)))
 		return c.String(http.StatusBadRequest, "Error: Unknown error, unable to read request")
 	}
 
 	if err := h.checkRequest(string(body)); err != nil {
-		h.logger.Error("StatusBadRequest: unable to handle empty request", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Error("StatusBadRequest: unable to handle empty request", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
-	url, err := h.urlService.Add(c.Request().Context(), string(body), h.urlPrefix)
+	userID, ok := c.Get("userID").(string)
+	if !ok {
+		h.logger.Error("Internal server error", zap.Error(apperrors.ErrUnableToGetUserIDFromContext))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	url, err := h.urlService.Add(c.Request().Context(), string(body), h.urlPrefix, userID)
 	if err != nil && !errors.Is(err, apperrors.ErrURLAlreadyExists) {
-		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
 
 	if errors.Is(err, apperrors.ErrURLAlreadyExists) {
-		h.logger.Warn("StatusConflict: url already exists", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Warn("StatusConflict: url already exists", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.String(http.StatusConflict, url.Shortened)
 	}
 
@@ -158,7 +257,7 @@ func (h *URLHandler) AddURL(c echo.Context) error {
 
 func (h *URLHandler) ClearAll(c echo.Context) error {
 	if err := h.urlService.DeleteAll(c.Request().Context()); err != nil {
-		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
 
@@ -168,7 +267,7 @@ func (h *URLHandler) ClearAll(c echo.Context) error {
 func (h *URLHandler) FindAll(c echo.Context) error {
 	urls, err := h.urlService.GetAll(c.Request().Context())
 	if err != nil {
-		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.String(http.StatusInternalServerError, fmt.Sprintf("Unknown error: %s", err))
 	}
 
@@ -179,7 +278,7 @@ func (h *URLHandler) FindURL(c echo.Context) error {
 	id := (strings.Split(c.Request().URL.Path, "/"))[1]
 
 	if err := h.checkRequest(id); err != nil {
-		h.logger.Error("StatusBadRequest: Unable to handle empty request", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Error("StatusBadRequest: Unable to handle empty request", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		return c.String(http.StatusBadRequest, "Error: Unable to handle empty request")
 	}
 
@@ -190,12 +289,17 @@ func (h *URLHandler) FindURL(c echo.Context) error {
 
 	switch {
 	case errors.Is(err, apperrors.ErrURLNotFound):
-		h.logger.Info("StatusBadRequest: url not found", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Info("StatusBadRequest: url not found", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		status = http.StatusBadRequest
 		message = fmt.Sprintf("URL with id %s not found", id)
 
+	case errors.Is(err, apperrors.ErrURLDeleted):
+		h.logger.Info("StatusBadRequest: url not found", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
+		status = http.StatusGone
+		message = fmt.Sprintf("URL with id %s has been deleted", id)
+
 	case err != nil:
-		h.logger.Error("InternalServerError", zap.Error(fmt.Errorf("caller: %s %w", utils.Caller(), err)))
+		h.logger.Error("InternalServerError", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
 		status = http.StatusInternalServerError
 		message = fmt.Sprintf("Unknown error: %s", err)
 

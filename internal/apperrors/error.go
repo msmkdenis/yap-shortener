@@ -6,10 +6,12 @@ import (
 )
 
 var (
-	ErrURLNotFound      error = errors.New("url not found")
-	ErrEmptyRequest     error = errors.New("unable to handle empty request")
-	ErrDuplicatedKeys   error = errors.New("duplicated keys in batch")
-	ErrURLAlreadyExists error = errors.New("url already exists")
+	ErrURLNotFound                  = errors.New("url not found")
+	ErrUnableToGetUserIDFromContext = errors.New("unable to get user id from context")
+	ErrEmptyRequest                 = errors.New("unable to handle empty request")
+	ErrDuplicatedKeys               = errors.New("duplicated keys in batch")
+	ErrURLAlreadyExists             = errors.New("url already exists")
+	ErrURLDeleted                   = errors.New("url deleted")
 )
 
 type ValueError struct {
@@ -27,7 +29,7 @@ func NewValueError(message string, caller string, err error) error {
 }
 
 func (v *ValueError) Error() string {
-	return fmt.Sprintf("caller: %s message: %s error: %s", v.caller, v.message, v.err)
+	return fmt.Sprintf("%s %s %s", v.caller, v.message, v.err)
 }
 
 func (v *ValueError) Unwrap() error {

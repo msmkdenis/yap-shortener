@@ -1,10 +1,11 @@
 package middleware
 
 import (
-	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 	"net/http"
 	"time"
+
+	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 )
 
 type (

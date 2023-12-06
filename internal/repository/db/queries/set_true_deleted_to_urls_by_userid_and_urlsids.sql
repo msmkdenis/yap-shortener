@@ -1,0 +1,1 @@
+update url_shortener.url set deleted_flag = true where user_id = $1 and id = $2

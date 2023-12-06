@@ -1,0 +1,1 @@
+create temporary table %s (like url_shortener.url) on commit drop

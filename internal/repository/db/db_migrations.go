@@ -6,12 +6,12 @@ import (
 	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
 	"github.com/golang-migrate/migrate/v4/source/iofs"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"go.uber.org/zap"
+
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
-	"go.uber.org/zap"
 )
 
 //go:embed migration/*.sql
@@ -62,7 +62,7 @@ func dbURL(config *pgxpool.Config, sslMode string) string {
 	var dbURL strings.Builder
 
 	dbURL.WriteString("postgres://")
-	dbURL.WriteString(string(config.ConnConfig.User))
+	dbURL.WriteString(config.ConnConfig.User)
 	dbURL.WriteString(":")
 	dbURL.WriteString(config.ConnConfig.Password)
 	dbURL.WriteString("@")
