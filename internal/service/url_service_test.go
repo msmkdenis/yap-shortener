@@ -76,10 +76,8 @@ func BenchmarkURLUseCase_GetAll(b *testing.B) {
 
 	rnd := rand.NewSource(time.Now().Unix())
 	data := make([]model.URL, 0, 10000)
-	original := make([]string, 0, 10000)
 	for i := 0; i < 10000; i++ {
 		data = append(data, generateURL(rnd))
-		original = append(original, data[i].Original)
 	}
 	b.StartTimer()
 	b.Run("UrlServiceGetAll", func(b *testing.B) {
