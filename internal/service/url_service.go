@@ -90,7 +90,6 @@ func (u *URLUseCase) GetAll(ctx context.Context) ([]string, error) {
 		return nil, fmt.Errorf("%s %w", utils.Caller(), err)
 	}
 
-	//var originalURLs []string
 	originalURLs := make([]string, 0, len(urls))
 	for _, url := range urls {
 		originalURLs = append(originalURLs, url.Original)

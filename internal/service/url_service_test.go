@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"errors"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
@@ -40,6 +41,8 @@ func (u *URLServiceTestSuite) TestGetAll() {
 		original = append(original, data[i].Original)
 	}
 
+	repoErr := errors.New("repository error")
+
 	testCases := []struct {
 		name          string
 		prepare       func()
@@ -55,6 +58,13 @@ func (u *URLServiceTestSuite) TestGetAll() {
 			expectedBody:  original,
 			expectedError: nil,
 		},
+		{
+			name: "Error return",
+			prepare: func() {
+				u.urlRepository.EXPECT().SelectAll(gomock.Any()).Return(nil, repoErr)
+			},
+			expectedBody: nil,
+		},
 	}
 	for _, test := range testCases {
 		u.T().Run(test.name, func(t *testing.T) {
@@ -63,8 +73,13 @@ func (u *URLServiceTestSuite) TestGetAll() {
 			}
 
 			urls, err := u.urlService.GetAll(context.Background())
-			assert.Equal(t, test.expectedError, err)
 			assert.Equal(t, test.expectedBody, urls)
+			if err != nil {
+				assert.True(t, errors.Is(err, repoErr))
+			} else {
+				assert.Equal(t, test.expectedError, err)
+			}
+
 		})
 	}
 }

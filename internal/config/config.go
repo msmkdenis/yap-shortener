@@ -47,7 +47,7 @@ func (c *Config) parseFlags() {
 	flag.StringVar(&FileStoragePath, "f", "", "Enter path for file Or use FILE_STORAGE_PATH env")
 
 	var DataBaseDSN string
-	flag.StringVar(&DataBaseDSN, "d", "", "Enter url to connect database as host=host port=port user=postgres password=postgres dbname=dbname sslmode=disable Or use DATABASE_DSN env")
+	flag.StringVar(&DataBaseDSN, "d", "user=postgres password=postgres host=localhost database=yap-shortener sslmode=disable", "Enter url to connect database as host=host port=port user=postgres password=postgres dbname=dbname sslmode=disable Or use DATABASE_DSN env")
 
 	var SecretKey string
 	flag.StringVar(&SecretKey, "s", "supersecretkey", "Enter secret key Or use SECRET_KEY env")

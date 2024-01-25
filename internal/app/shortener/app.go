@@ -1,8 +1,9 @@
-package app
+package shortener
 
 import (
 	"context"
 	"errors"
+	"github.com/msmkdenis/yap-shortener/pkg/echopprof"
 	"net/http"
 	"os"
 	"os/signal"
@@ -33,6 +34,7 @@ func URLShortenerRun() {
 	urlService := service.NewURLService(repository, logger)
 
 	e := echo.New()
+	echopprof.Wrap(e)
 	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger)
 
 	serverCtx, serverStopCtx := context.WithCancel(context.Background())
