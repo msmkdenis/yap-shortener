@@ -93,7 +93,6 @@ func (u *URLServiceTestSuite) TestGetAllByUserId() {
 }
 
 func (u *URLServiceTestSuite) TestDeleteURLByUserID() {
-
 	repoErr := errors.New("repository error")
 
 	testCases := []struct {
@@ -252,7 +251,6 @@ func (u *URLServiceTestSuite) TestGetAll() {
 			} else {
 				assert.Equal(t, test.expectedError, err)
 			}
-
 		})
 	}
 }
@@ -293,7 +291,6 @@ func (u *URLServiceTestSuite) TestDeleteAll() {
 			} else {
 				assert.Equal(t, test.expectedError, err)
 			}
-
 		})
 	}
 }
@@ -369,7 +366,6 @@ func (u *URLServiceTestSuite) TestAddAll() {
 	urlBatchResponse := make([]dto.URLBatchResponse, 0, 20)
 	urls := make([]model.URL, 0, 20)
 	for i := 0; i < 20; i++ {
-
 		s := generateString(10, rnd)
 		request := dto.URLBatchRequest{
 			CorrelationID: uuid.New().String(),
