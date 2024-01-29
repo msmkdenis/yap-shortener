@@ -4,19 +4,21 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math/rand"
+	"testing"
+	"time"
+
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/suite"
+	"go.uber.org/zap"
+
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	"github.com/msmkdenis/yap-shortener/internal/utils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/suite"
-	"go.uber.org/zap"
-	"math/rand"
-	"testing"
-	"time"
 )
 
 type URLServiceTestSuite struct {

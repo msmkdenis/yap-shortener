@@ -3,12 +3,13 @@ package shortener
 import (
 	"context"
 	"errors"
-	"github.com/msmkdenis/yap-shortener/pkg/echopprof"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/msmkdenis/yap-shortener/pkg/echopprof"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"

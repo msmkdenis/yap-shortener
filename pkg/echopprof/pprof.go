@@ -1,9 +1,10 @@
 package echopprof
 
 import (
-	"github.com/labstack/echo/v4"
 	"net/http/pprof"
 	"strings"
+
+	"github.com/labstack/echo/v4"
 )
 
 func Wrap(e *echo.Echo) {
