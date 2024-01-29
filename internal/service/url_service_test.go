@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
@@ -352,6 +353,92 @@ func (u *URLServiceTestSuite) TestGetByID() {
 				assert.True(t, errors.Is(err, test.expectedError))
 			} else {
 				assert.Equal(t, test.expectedBody, url)
+			}
+		})
+	}
+}
+
+func (u *URLServiceTestSuite) TestAddAll() {
+	rnd := rand.NewSource(time.Now().Unix())
+	host := generateString(4, rnd)
+	userID := uuid.New().String()
+
+	urlBatchRequest := make([]dto.URLBatchRequest, 0, 20)
+	urlBatchResponse := make([]dto.URLBatchResponse, 0, 20)
+	urls := make([]model.URL, 0, 20)
+	for i := 0; i < 20; i++ {
+
+		s := generateString(10, rnd)
+		request := dto.URLBatchRequest{
+			CorrelationID: uuid.New().String(),
+			OriginalURL:   s,
+		}
+		urlBatchRequest = append(urlBatchRequest, request)
+
+		shortURL := utils.GenerateMD5Hash(request.OriginalURL)
+		url := model.URL{
+			ID:            shortURL,
+			Original:      request.OriginalURL,
+			Shortened:     host + "/" + shortURL,
+			CorrelationID: request.CorrelationID,
+			UserID:        userID,
+			DeletedFlag:   false,
+		}
+		urls = append(urls, url)
+
+		response := dto.URLBatchResponse{
+			CorrelationID: request.CorrelationID,
+			ShortenedURL:  host + "/" + utils.GenerateMD5Hash(request.OriginalURL),
+		}
+		urlBatchResponse = append(urlBatchResponse, response)
+	}
+
+	repoErr := errors.New("repository error")
+
+	testCases := []struct {
+		name          string
+		prepare       func()
+		expectedBody  []dto.URLBatchResponse
+		expectedError error
+	}{
+		{
+			name: "Successful add all",
+			prepare: func() {
+				u.urlRepository.EXPECT().InsertAllOrUpdate(gomock.Any(), gomock.Any()).Return(urls, nil)
+			},
+			expectedBody:  urlBatchResponse,
+			expectedError: nil,
+		},
+		{
+			name: "Error duplicated key",
+			prepare: func() {
+				urlBatchRequest[0].CorrelationID = uuid.New().String()
+				urlBatchRequest[1].CorrelationID = urlBatchRequest[0].CorrelationID
+			},
+			expectedError: apperrors.ErrDuplicatedKeys,
+		},
+		{
+			name: "Error",
+			prepare: func() {
+				urlBatchRequest[1].CorrelationID = uuid.New().String()
+				u.urlRepository.EXPECT().InsertAllOrUpdate(gomock.Any(), gomock.Any()).Return(nil, repoErr)
+			},
+			expectedError: repoErr,
+		},
+	}
+	for _, test := range testCases {
+		u.T().Run(test.name, func(t *testing.T) {
+			if test.prepare != nil {
+				test.prepare()
+			}
+
+			savedURL, err := u.urlService.AddAll(context.Background(), urlBatchRequest, host, userID)
+			fmt.Println(err)
+			assert.Equal(t, test.expectedBody, savedURL)
+			if err != nil {
+				assert.True(t, errors.Is(err, test.expectedError))
+			} else {
+				assert.Equal(t, test.expectedError, err)
 			}
 		})
 	}
