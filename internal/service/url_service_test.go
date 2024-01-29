@@ -35,80 +35,6 @@ func (u *URLServiceTestSuite) SetupSuite() {
 	u.urlService = NewURLService(u.urlRepository, u.logger)
 }
 
-func (u *URLServiceTestSuite) TestAdd() {
-	rnd := rand.NewSource(time.Now().Unix())
-	s := generateString(10, rnd)
-	host := generateString(4, rnd)
-	userID := uuid.New().String()
-	urlKey := utils.GenerateMD5Hash(s)
-	url := &model.URL{
-		ID:          urlKey,
-		Original:    s,
-		Shortened:   host + "/" + urlKey,
-		UserID:      userID,
-		DeletedFlag: false,
-	}
-
-	repoErr := errors.New("repository error")
-
-	testCases := []struct {
-		name          string
-		prepareSelect func()
-		prepareInsert func()
-		expectedBody  *model.URL
-		expectedError error
-	}{
-		{
-			name: "Successful add",
-			prepareSelect: func() {
-				u.urlRepository.EXPECT().SelectByID(gomock.Any(), urlKey).Return(nil, repoErr)
-			},
-			prepareInsert: func() {
-				u.urlRepository.EXPECT().Insert(gomock.Any(), *url).Return(url, nil)
-			},
-			expectedBody:  url,
-			expectedError: nil,
-		},
-		{
-			name: "Successful return existing url",
-			prepareSelect: func() {
-				u.urlRepository.EXPECT().SelectByID(gomock.Any(), urlKey).Return(url, nil)
-			},
-			expectedBody:  url,
-			expectedError: apperrors.ErrURLAlreadyExists,
-		},
-		{
-			name: "Error while add",
-			prepareSelect: func() {
-				u.urlRepository.EXPECT().SelectByID(gomock.Any(), urlKey).Return(nil, repoErr)
-			},
-			prepareInsert: func() {
-				u.urlRepository.EXPECT().Insert(gomock.Any(), *url).Return(nil, repoErr)
-			},
-			expectedBody:  nil,
-			expectedError: repoErr,
-		},
-	}
-	for _, test := range testCases {
-		u.T().Run(test.name, func(t *testing.T) {
-			if test.prepareSelect != nil {
-				test.prepareSelect()
-			}
-			if test.prepareInsert != nil {
-				test.prepareInsert()
-			}
-
-			savedURL, err := u.urlService.Add(context.Background(), s, host, userID)
-			assert.Equal(t, test.expectedBody, savedURL)
-			if err != nil {
-				assert.True(t, errors.Is(err, test.expectedError))
-			} else {
-				assert.Equal(t, test.expectedError, err)
-			}
-		})
-	}
-}
-
 func (u *URLServiceTestSuite) TestGetAllByUserId() {
 	rnd := rand.NewSource(time.Now().Unix())
 	data := make([]model.URL, 0, 100)
@@ -127,7 +53,6 @@ func (u *URLServiceTestSuite) TestGetAllByUserId() {
 	testCases := []struct {
 		name          string
 		prepare       func()
-		expectedCode  int
 		expectedBody  []dto.URLBatchResponseByUserID
 		expectedError error
 	}{
@@ -204,6 +129,80 @@ func (u *URLServiceTestSuite) TestDeleteURLByUserID() {
 	}
 }
 
+func (u *URLServiceTestSuite) TestAdd() {
+	rnd := rand.NewSource(time.Now().Unix())
+	s := generateString(10, rnd)
+	host := generateString(4, rnd)
+	userID := uuid.New().String()
+	urlKey := utils.GenerateMD5Hash(s)
+	url := &model.URL{
+		ID:          urlKey,
+		Original:    s,
+		Shortened:   host + "/" + urlKey,
+		UserID:      userID,
+		DeletedFlag: false,
+	}
+
+	repoErr := errors.New("repository error")
+
+	testCases := []struct {
+		name          string
+		prepareSelect func()
+		prepareInsert func()
+		expectedBody  *model.URL
+		expectedError error
+	}{
+		{
+			name: "Successful add",
+			prepareSelect: func() {
+				u.urlRepository.EXPECT().SelectByID(gomock.Any(), urlKey).Return(nil, repoErr)
+			},
+			prepareInsert: func() {
+				u.urlRepository.EXPECT().Insert(gomock.Any(), *url).Return(url, nil)
+			},
+			expectedBody:  url,
+			expectedError: nil,
+		},
+		{
+			name: "Successful return existing url",
+			prepareSelect: func() {
+				u.urlRepository.EXPECT().SelectByID(gomock.Any(), urlKey).Return(url, nil)
+			},
+			expectedBody:  url,
+			expectedError: apperrors.ErrURLAlreadyExists,
+		},
+		{
+			name: "Error while add",
+			prepareSelect: func() {
+				u.urlRepository.EXPECT().SelectByID(gomock.Any(), urlKey).Return(nil, repoErr)
+			},
+			prepareInsert: func() {
+				u.urlRepository.EXPECT().Insert(gomock.Any(), *url).Return(nil, repoErr)
+			},
+			expectedBody:  nil,
+			expectedError: repoErr,
+		},
+	}
+	for _, test := range testCases {
+		u.T().Run(test.name, func(t *testing.T) {
+			if test.prepareSelect != nil {
+				test.prepareSelect()
+			}
+			if test.prepareInsert != nil {
+				test.prepareInsert()
+			}
+
+			savedURL, err := u.urlService.Add(context.Background(), s, host, userID)
+			assert.Equal(t, test.expectedBody, savedURL)
+			if err != nil {
+				assert.True(t, errors.Is(err, test.expectedError))
+			} else {
+				assert.Equal(t, test.expectedError, err)
+			}
+		})
+	}
+}
+
 func (u *URLServiceTestSuite) TestGetAll() {
 	rnd := rand.NewSource(time.Now().Unix())
 	data := make([]model.URL, 0, 100)
@@ -218,7 +217,6 @@ func (u *URLServiceTestSuite) TestGetAll() {
 	testCases := []struct {
 		name          string
 		prepare       func()
-		expectedCode  int
 		expectedBody  []string
 		expectedError error
 	}{
@@ -252,6 +250,109 @@ func (u *URLServiceTestSuite) TestGetAll() {
 				assert.Equal(t, test.expectedError, err)
 			}
 
+		})
+	}
+}
+
+func (u *URLServiceTestSuite) TestDeleteAll() {
+	repoErr := errors.New("repository error")
+
+	testCases := []struct {
+		name          string
+		prepare       func()
+		expectedBody  []string
+		expectedError error
+	}{
+		{
+			name: "Successful delete",
+			prepare: func() {
+				u.urlRepository.EXPECT().DeleteAll(gomock.Any()).Return(nil)
+			},
+			expectedError: nil,
+		},
+		{
+			name: "Error",
+			prepare: func() {
+				u.urlRepository.EXPECT().DeleteAll(gomock.Any()).Return(repoErr)
+			},
+			expectedError: repoErr,
+		},
+	}
+	for _, test := range testCases {
+		u.T().Run(test.name, func(t *testing.T) {
+			if test.prepare != nil {
+				test.prepare()
+			}
+
+			err := u.urlService.DeleteAll(context.Background())
+			if err != nil {
+				assert.True(t, errors.Is(err, repoErr))
+			} else {
+				assert.Equal(t, test.expectedError, err)
+			}
+
+		})
+	}
+}
+
+func (u *URLServiceTestSuite) TestGetByID() {
+	rnd := rand.NewSource(time.Now().Unix())
+	s := generateString(10, rnd)
+	host := generateString(4, rnd)
+	userID := uuid.New().String()
+	urlKey := utils.GenerateMD5Hash(s)
+	url := &model.URL{
+		ID:          urlKey,
+		Original:    s,
+		Shortened:   host + "/" + urlKey,
+		UserID:      userID,
+		DeletedFlag: false,
+	}
+
+	repoErr := errors.New("repository error")
+
+	testCases := []struct {
+		name          string
+		prepare       func()
+		expectedBody  string
+		expectedError error
+	}{
+		{
+			name: "Successful get",
+			prepare: func() {
+				u.urlRepository.EXPECT().SelectByID(gomock.Any(), urlKey).Return(url, nil)
+			},
+			expectedBody:  url.Original,
+			expectedError: nil,
+		},
+		{
+			name: "Url deleted",
+			prepare: func() {
+				url.DeletedFlag = true
+				u.urlRepository.EXPECT().SelectByID(gomock.Any(), urlKey).Return(url, nil)
+			},
+			expectedError: apperrors.ErrURLDeleted,
+		},
+		{
+			name: "Error",
+			prepare: func() {
+				u.urlRepository.EXPECT().SelectByID(gomock.Any(), urlKey).Return(nil, repoErr)
+			},
+			expectedError: repoErr,
+		},
+	}
+	for _, test := range testCases {
+		u.T().Run(test.name, func(t *testing.T) {
+			if test.prepare != nil {
+				test.prepare()
+			}
+
+			url, err := u.urlService.GetByyID(context.Background(), urlKey)
+			if err != nil {
+				assert.True(t, errors.Is(err, test.expectedError))
+			} else {
+				assert.Equal(t, test.expectedBody, url)
+			}
 		})
 	}
 }
