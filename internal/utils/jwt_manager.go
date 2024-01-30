@@ -1,3 +1,4 @@
+// Package utils provides some utilities.
 package utils
 
 import (
@@ -27,6 +28,7 @@ type claims struct {
 	UserID string
 }
 
+// InitJWTManager returns a new instance of JWTManager.
 func InitJWTManager(tokenName string, secretKey string, logger *zap.Logger) *JWTManager {
 	j := &JWTManager{
 		logger:    logger,
@@ -36,6 +38,7 @@ func InitJWTManager(tokenName string, secretKey string, logger *zap.Logger) *JWT
 	return j
 }
 
+// BuildJWTString creates JWT token with userID.
 func (j *JWTManager) BuildJWTString() (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claims{
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -53,6 +56,7 @@ func (j *JWTManager) BuildJWTString() (string, error) {
 	return tokenString, nil
 }
 
+// GetUserID returns userID from JWT token.
 func (j *JWTManager) GetUserID(tokenString string) (string, error) {
 	claims := &claims{}
 	token, err := jwt.ParseWithClaims(tokenString, claims,

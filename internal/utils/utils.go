@@ -10,6 +10,7 @@ import (
 	"runtime"
 )
 
+// GenerateMD5Hash generates MD5 hash from string to shorten URL
 func GenerateMD5Hash(text string) string {
 	hash := md5.Sum([]byte(text))
 	fullHash := hex.EncodeToString(hash[:])
@@ -18,6 +19,7 @@ func GenerateMD5Hash(text string) string {
 	return encoded[:7]
 }
 
+// Caller returns file name and line number of function call
 func Caller() string {
 	_, file, lineNo, ok := runtime.Caller(1)
 	if !ok {

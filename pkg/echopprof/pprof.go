@@ -1,3 +1,4 @@
+// Package echopprof provides routes from package `net/http/pprof` to *echo.Echo object.
 package echopprof
 
 import (
@@ -7,6 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// Wrap adds several routes from package `net/http/pprof` to *echo.Echo object.
 func Wrap(e *echo.Echo) {
 	WrapGroup("", e.Group("/debug/pprof"))
 }

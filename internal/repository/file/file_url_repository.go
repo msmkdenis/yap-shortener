@@ -1,3 +1,4 @@
+// Package file contains the file repository implementation.
 package file
 
 import (
@@ -27,6 +28,9 @@ type URLRepository struct {
 	logger      *zap.Logger
 }
 
+// NewFileURLRepository creates a new URLRepository from the given path and logger.
+// Tries to create the directory if it doesn't exist.
+// Tries to create the file if it doesn't exist.
 func NewFileURLRepository(path string, logger *zap.Logger) (*URLRepository, error) {
 	path = filepath.FromSlash(path)
 
@@ -56,6 +60,7 @@ func NewFileURLRepository(path string, logger *zap.Logger) (*URLRepository, erro
 	}, nil
 }
 
+// DeleteURLByUserID deletes a URL by user ID from the file
 func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, shortURL string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -103,6 +108,7 @@ func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, sh
 	return nil
 }
 
+// SelectAllByUserID retrieves all URLs by user ID from file
 func (r *URLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -139,6 +145,7 @@ func (r *URLRepository) SelectAllByUserID(ctx context.Context, userID string) ([
 	return urls, nil
 }
 
+// Insert inserts URL to file
 func (r *URLRepository) Insert(ctx context.Context, url model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -159,6 +166,7 @@ func (r *URLRepository) Insert(ctx context.Context, url model.URL) (*model.URL, 
 	return &url, nil
 }
 
+// SelectByID retrieves URL from file by ID
 func (r *URLRepository) SelectByID(ctx context.Context, key string) (*model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -188,6 +196,7 @@ func (r *URLRepository) SelectByID(ctx context.Context, key string) (*model.URL,
 	return &url, nil
 }
 
+// SelectAll retrieves all URLs from file
 func (r *URLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -217,6 +226,7 @@ func (r *URLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 	return urls, nil
 }
 
+// DeleteAll deletes all URLs from file
 func (r *URLRepository) DeleteAll(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -227,6 +237,7 @@ func (r *URLRepository) DeleteAll(ctx context.Context) error {
 	return nil
 }
 
+// Ping pings the file storage
 func (r *URLRepository) Ping(ctx context.Context) error {
 	file, err := os.OpenFile(r.fileStorage.Name(), os.O_RDONLY, perm)
 	if err != nil {
@@ -236,6 +247,7 @@ func (r *URLRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
+// InsertAllOrUpdate upserts all URLs to file
 func (r *URLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL) ([]model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

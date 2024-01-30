@@ -16,6 +16,7 @@ type PostgresPool struct {
 	logger *zap.Logger
 }
 
+// NewPostgresPool returns a new instance of PostgresPool with pool of connections.
 func NewPostgresPool(connection string, logger *zap.Logger) (*PostgresPool, error) {
 	dbPool, err := pgxpool.New(context.Background(), connection)
 	if err != nil {

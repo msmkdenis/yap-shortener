@@ -1,3 +1,4 @@
+// Package shortener implements the URL shortener service.
 package shortener
 
 import (
@@ -24,6 +25,9 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
+// URLShortenerRun runs the URL shortener service. Graceful shutdown is implemented.
+//
+// It does not take any parameters and does not return any values.
 func URLShortenerRun() {
 	cfg := *config.NewConfig()
 	logger, err := zap.NewProduction()

@@ -1,3 +1,4 @@
+// Package config contains the configuration for the application.
 package config
 
 import (
@@ -7,12 +8,14 @@ import (
 
 type Repository uint
 
+// RepositoryType represents the type of the repository.
 const (
 	DataBaseRepository Repository = iota + 1
 	FileRepository
 	MemoryRepostiory
 )
 
+// Config represents the configuration for the application.
 type Config struct {
 	URLServer       string
 	URLPrefix       string
@@ -23,6 +26,10 @@ type Config struct {
 	TokenName       string
 }
 
+// NewConfig creates a new Config instance with default values and returns a pointer to it.
+//
+// No parameters.
+// Returns a pointer to a Config instance.
 func NewConfig() *Config {
 	config := Config{
 		URLServer: "8080",

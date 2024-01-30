@@ -1,3 +1,4 @@
+// Package client sends simple requests to the server.
 package client
 
 import (

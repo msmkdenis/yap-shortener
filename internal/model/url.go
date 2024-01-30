@@ -1,3 +1,4 @@
+// Package model contains the model for the application.
 package model
 
 type URL struct {

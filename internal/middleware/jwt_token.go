@@ -22,6 +22,8 @@ func InitJWTCheckerCreator(jwtManager *utils.JWTManager, logger *zap.Logger) *JW
 	return j
 }
 
+// JWTCheckOrCreate checks token and sets userID in the context.
+// Otherwise creates new token and sets it in the context.
 func (j *JWTCheckerCreator) JWTCheckOrCreate() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

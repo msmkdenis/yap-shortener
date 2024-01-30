@@ -1,3 +1,4 @@
+// Package apperrors implements the application errors.
 package apperrors
 
 import (
@@ -20,6 +21,17 @@ type ValueError struct {
 	err     error
 }
 
+// NewValueError creates a new ValueError with the given message, caller, and error.
+//
+// Parameters:
+//
+//	message string - the error message
+//	caller string - the caller of the function tracing place in the code
+//	err error - the original error
+//
+// Return type:
+//
+//	error - the newly created ValueError
 func NewValueError(message string, caller string, err error) error {
 	return &ValueError{
 		caller:  caller,
@@ -28,10 +40,16 @@ func NewValueError(message string, caller string, err error) error {
 	}
 }
 
+// Error returns a string representing the error.
+//
+// No parameters.
+// Returns a string.
 func (v *ValueError) Error() string {
 	return fmt.Sprintf("%s %s %s", v.caller, v.message, v.err)
 }
 
+// Unwrap returns the error that has been wrapped by ValueError.
+// No parameters. Returns an error.
 func (v *ValueError) Unwrap() error {
 	return v.err
 }

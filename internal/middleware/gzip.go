@@ -1,3 +1,4 @@
+// Package middleware various middleware.
 package middleware
 
 import (
@@ -37,6 +38,7 @@ func newCompressReader(r io.ReadCloser) (*compressReader, error) {
 	}, nil
 }
 
+// Decompress returns a middleware that decompresses the request body if it is encoded with gzip.
 func Decompress() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -85,6 +87,7 @@ func (c *compressWriter) Close() error {
 	return c.zw.Close()
 }
 
+// Compress returns a middleware function that compresses the response using gzip if the client supports it.
 func Compress() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

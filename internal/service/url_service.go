@@ -1,3 +1,4 @@
+// Package service provides URL service.
 package service
 
 import (
@@ -12,6 +13,7 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
+// URLRepository represents URL repository interface.
 type URLRepository interface {
 	Insert(ctx context.Context, u model.URL) (*model.URL, error)
 	InsertAllOrUpdate(ctx context.Context, urls []model.URL) ([]model.URL, error)
@@ -28,6 +30,7 @@ type URLUseCase struct {
 	logger     *zap.Logger
 }
 
+// NewURLService initializes a new URLUseCase with the given URLRepository and logger.
 func NewURLService(repository URLRepository, logger *zap.Logger) *URLUseCase {
 	return &URLUseCase{
 		repository: repository,
@@ -35,6 +38,7 @@ func NewURLService(repository URLRepository, logger *zap.Logger) *URLUseCase {
 	}
 }
 
+// GetAllByUserID returns all URLs by user ID.
 func (u *URLUseCase) GetAllByUserID(ctx context.Context, userID string) ([]dto.URLBatchResponseByUserID, error) {
 	urls, err := u.repository.SelectAllByUserID(ctx, userID)
 	if err != nil {
@@ -52,6 +56,7 @@ func (u *URLUseCase) GetAllByUserID(ctx context.Context, userID string) ([]dto.U
 	return response, nil
 }
 
+// DeleteURLByUserID deletes URL by user ID.
 func (u *URLUseCase) DeleteURLByUserID(ctx context.Context, userID string, shortURL string) error {
 	err := u.repository.DeleteURLByUserID(ctx, userID, shortURL)
 	if err != nil {
@@ -61,6 +66,7 @@ func (u *URLUseCase) DeleteURLByUserID(ctx context.Context, userID string, short
 	return nil
 }
 
+// Add adds a new URL.
 func (u *URLUseCase) Add(ctx context.Context, s, host string, userID string) (*model.URL, error) {
 	urlKey := utils.GenerateMD5Hash(s)
 	url := &model.URL{
@@ -84,6 +90,7 @@ func (u *URLUseCase) Add(ctx context.Context, s, host string, userID string) (*m
 	return savedURL, nil
 }
 
+// GetAll returns all URLs.
 func (u *URLUseCase) GetAll(ctx context.Context) ([]string, error) {
 	urls, err := u.repository.SelectAll(ctx)
 	if err != nil {
@@ -98,6 +105,7 @@ func (u *URLUseCase) GetAll(ctx context.Context) ([]string, error) {
 	return originalURLs, nil
 }
 
+// DeleteAll deletes all URLs.
 func (u *URLUseCase) DeleteAll(ctx context.Context) error {
 	if err := u.repository.DeleteAll(ctx); err != nil {
 		return fmt.Errorf("%s %w", utils.Caller(), err)
@@ -105,6 +113,7 @@ func (u *URLUseCase) DeleteAll(ctx context.Context) error {
 	return nil
 }
 
+// GetByyID returns URL by ID.
 func (u *URLUseCase) GetByyID(ctx context.Context, key string) (string, error) {
 	url, err := u.repository.SelectByID(ctx, key)
 	if err != nil {
@@ -118,11 +127,13 @@ func (u *URLUseCase) GetByyID(ctx context.Context, key string) (string, error) {
 	return url.Original, nil
 }
 
+// Ping pings the URL repository.
 func (u *URLUseCase) Ping(ctx context.Context) error {
 	err := u.repository.Ping(ctx)
 	return err
 }
 
+// AddAll adds URLs.
 func (u *URLUseCase) AddAll(ctx context.Context, urls []dto.URLBatchRequest, host string, userID string) ([]dto.URLBatchResponse, error) {
 	urlsToSave := make([]model.URL, 0, len(urls))
 	keys := make(map[string]string, len(urls))

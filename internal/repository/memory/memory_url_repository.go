@@ -1,3 +1,4 @@
+// Package memory provides in-memory implementation of URLRepository.
 package memory
 
 import (
@@ -18,6 +19,7 @@ type URLRepository struct {
 	logger  *zap.Logger
 }
 
+// NewURLRepository creates a new URLRepository (hash-map)
 func NewURLRepository(logger *zap.Logger) *URLRepository {
 	return &URLRepository{
 		storage: make(map[string]model.URL),
@@ -26,6 +28,7 @@ func NewURLRepository(logger *zap.Logger) *URLRepository {
 	}
 }
 
+// DeleteURLByUserID deletes URL by user ID from in-memory storage.
 func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, shortURL string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -40,6 +43,7 @@ func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, sh
 	return nil
 }
 
+// SelectAllByUserID returns all URLs by user ID from in-memory storage.
 func (r *URLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -58,6 +62,7 @@ func (r *URLRepository) SelectAllByUserID(ctx context.Context, userID string) ([
 	return urls, nil
 }
 
+// Insert inserts URL into in-memory storage
 func (r *URLRepository) Insert(ctx context.Context, u model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -68,6 +73,7 @@ func (r *URLRepository) Insert(ctx context.Context, u model.URL) (*model.URL, er
 	return &url, nil
 }
 
+// SelectByID returns URL by ID from in-memory storage
 func (r *URLRepository) SelectByID(ctx context.Context, key string) (*model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -80,6 +86,7 @@ func (r *URLRepository) SelectByID(ctx context.Context, key string) (*model.URL,
 	return &url, nil
 }
 
+// SelectAll returns all URLs from in-memory storage
 func (r *URLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -92,6 +99,7 @@ func (r *URLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 	return values, nil
 }
 
+// DeleteAll deletes all URLs from in-memory storage
 func (r *URLRepository) DeleteAll(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -100,6 +108,7 @@ func (r *URLRepository) DeleteAll(ctx context.Context) error {
 	return nil
 }
 
+// Ping pings the storage
 func (r *URLRepository) Ping(ctx context.Context) error {
 	if r.storage == nil {
 		return apperrors.NewValueError("storage is not initialized", utils.Caller(), apperrors.ErrURLNotFound)
@@ -108,6 +117,7 @@ func (r *URLRepository) Ping(ctx context.Context) error {
 	return nil
 }
 
+// InsertAllOrUpdate upserts all URLs into in-memory storage
 func (r *URLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL) ([]model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

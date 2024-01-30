@@ -1,3 +1,4 @@
+// Package handlers implements the URL shortener service http handlers.
 package handlers
 
 import (
@@ -27,6 +28,7 @@ type URLHandler struct {
 	logger     *zap.Logger
 }
 
+// URLService represents URL service interface.
 type URLService interface {
 	Add(ctx context.Context, s string, host string, userID string) (*model.URL, error)
 	AddAll(ctx context.Context, urls []dto.URLBatchRequest, host string, userID string) ([]dto.URLBatchResponse, error)
@@ -38,6 +40,9 @@ type URLService interface {
 	Ping(ctx context.Context) error
 }
 
+// NewURLHandler creates a new URLHandler instance
+//
+// Registers the URL shortener service http handlers.
 func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, jwtManager *utils.JWTManager, logger *zap.Logger) *URLHandler {
 	handler := &URLHandler{
 		urlService: service,
@@ -72,6 +77,7 @@ func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, jwtManage
 	return handler
 }
 
+// FindAllURLByUserID retrieves all URLs for a given user ID.
 func (h *URLHandler) FindAllURLByUserID(c echo.Context) error {
 	userID, ok := c.Get("userID").(string)
 	if !ok {
@@ -93,6 +99,7 @@ func (h *URLHandler) FindAllURLByUserID(c echo.Context) error {
 	return c.JSON(http.StatusOK, savedURLs)
 }
 
+// DeleteAllURLsByUserID deletes all URLs associated with a user ID.
 func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 	header := c.Request().Header.Get("Content-Type")
 	if header != "application/json" {
@@ -136,6 +143,7 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 	return c.NoContent(http.StatusAccepted)
 }
 
+// AddBatch handles the addition of a batch of URLs.
 func (h *URLHandler) AddBatch(c echo.Context) error {
 	header := c.Request().Header.Get("Content-Type")
 	if header != "application/json" {
@@ -172,6 +180,7 @@ func (h *URLHandler) AddBatch(c echo.Context) error {
 	return c.JSON(http.StatusCreated, savedURLs)
 }
 
+// AddShorten handles the addition of a single URL (got as json).
 func (h *URLHandler) AddShorten(c echo.Context) error {
 	header := c.Request().Header.Get("Content-Type")
 	if header != "application/json" {
@@ -222,6 +231,7 @@ func (h *URLHandler) AddShorten(c echo.Context) error {
 	return c.JSON(http.StatusCreated, response)
 }
 
+// AddURL handles the addition of a URL (got as plain text).
 func (h *URLHandler) AddURL(c echo.Context) error {
 	body, readErr := io.ReadAll(c.Request().Body)
 	if readErr != nil {
@@ -255,6 +265,9 @@ func (h *URLHandler) AddURL(c echo.Context) error {
 	return c.String(http.StatusCreated, url.Shortened)
 }
 
+// ClearAll deletes all data and returns an error if any.
+//
+// Deletes all saved urls.
 func (h *URLHandler) ClearAll(c echo.Context) error {
 	if err := h.urlService.DeleteAll(c.Request().Context()); err != nil {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("%s %w", utils.Caller(), err)))
@@ -264,6 +277,9 @@ func (h *URLHandler) ClearAll(c echo.Context) error {
 	return c.String(http.StatusOK, "All data deleted")
 }
 
+// FindAll retrieves all URLs.
+//
+// Retrieves all saved urls.
 func (h *URLHandler) FindAll(c echo.Context) error {
 	urls, err := h.urlService.GetAll(c.Request().Context())
 	if err != nil {
@@ -274,6 +290,9 @@ func (h *URLHandler) FindAll(c echo.Context) error {
 	return c.String(http.StatusOK, strings.Join(urls, ", "))
 }
 
+// FindURL finds the URL based on the given ID from echo context.
+//
+// Finds the URL based on the given ID.
 func (h *URLHandler) FindURL(c echo.Context) error {
 	id := (strings.Split(c.Request().URL.Path, "/"))[1]
 
@@ -312,6 +331,7 @@ func (h *URLHandler) FindURL(c echo.Context) error {
 	return c.String(status, message)
 }
 
+// checkRequest checks if the request is empty.
 func (h *URLHandler) checkRequest(s string) error {
 	if len(s) == 0 {
 		return apperrors.NewValueError("Unable to handle empty request", utils.Caller(), apperrors.ErrEmptyRequest)
@@ -320,6 +340,9 @@ func (h *URLHandler) checkRequest(s string) error {
 	return nil
 }
 
+// Ping is a function that handles the ping request.
+//
+// Check database connection.
 func (h *URLHandler) Ping(c echo.Context) error {
 	status := http.StatusOK
 	err := h.urlService.Ping(c.Request().Context())

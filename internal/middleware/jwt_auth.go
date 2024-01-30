@@ -22,6 +22,7 @@ func InitJWTAuth(jwtManager *utils.JWTManager, logger *zap.Logger) *JWTAuth {
 	return j
 }
 
+// JWTAuth checks token and sets userID in the context. otherwise returns 401.
 func (j *JWTAuth) JWTAuth() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

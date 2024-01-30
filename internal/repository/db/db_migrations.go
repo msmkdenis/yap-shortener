@@ -1,3 +1,4 @@
+// Package db contains the database migrations and interactions.
 package db
 
 import (
@@ -17,11 +18,16 @@ import (
 //go:embed migration/*.sql
 var migrationsFS embed.FS
 
+// Migrations represents the go migrate instance.
 type Migrations struct {
 	migrations *migrate.Migrate
 	logger     *zap.Logger
 }
 
+// NewMigrations creates a new Migrations instance.
+//
+// It takes a connection string and a logger as parameters and returns a
+// pointer to Migrations and an error.
 func NewMigrations(connection string, logger *zap.Logger) (*Migrations, error) {
 	dbConfig, err := pgxpool.ParseConfig(connection)
 	if err != nil {
@@ -50,6 +56,7 @@ func NewMigrations(connection string, logger *zap.Logger) (*Migrations, error) {
 	}, nil
 }
 
+// MigrateUp perform migrations up.
 func (m *Migrations) MigrateUp() error {
 	err := m.migrations.Up()
 	if err != nil && err.Error() != "no change" {

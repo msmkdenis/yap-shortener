@@ -48,6 +48,9 @@ type PostgresURLRepository struct {
 	logger       *zap.Logger
 }
 
+// NewPostgresURLRepository returns a new instance of PostgresURLRepository.
+//
+// It takes a PostgresPool pointer and a zap.Logger pointer as parameters and returns a PostgresURLRepository pointer.
 func NewPostgresURLRepository(postgresPool *PostgresPool, logger *zap.Logger) *PostgresURLRepository {
 	return &PostgresURLRepository{
 		PostgresPool: postgresPool,
@@ -55,10 +58,14 @@ func NewPostgresURLRepository(postgresPool *PostgresPool, logger *zap.Logger) *P
 	}
 }
 
+// Ping pings the PostgresURLRepository.
 func (r *PostgresURLRepository) Ping(ctx context.Context) error {
 	return r.PostgresPool.db.Ping(ctx)
 }
 
+// DeleteURLByUserID deletes from PostgreSQL DB URLs by user ID.
+//
+// Performed via select for update block within batched transaction
 func (r *PostgresURLRepository) DeleteURLByUserID(ctx context.Context, userID string, shortURLs string) error {
 	r.logger.Info("DeleteURLByUserID", zap.String("userID", userID), zap.String("shortURLs", shortURLs))
 	tx, err := r.PostgresPool.db.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
@@ -95,6 +102,7 @@ func (r *PostgresURLRepository) DeleteURLByUserID(ctx context.Context, userID st
 	return nil
 }
 
+// SelectAllByUserID retrieves from PostgreSQL DB URLs by user ID.
 func (r *PostgresURLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {
 	queryRows, err := r.PostgresPool.db.Query(ctx, selectAllURLsByUserID, userID)
 	if err != nil {
@@ -114,6 +122,7 @@ func (r *PostgresURLRepository) SelectAllByUserID(ctx context.Context, userID st
 	return urls, nil
 }
 
+// Insert inserts to PostgreSQL DB URL.
 func (r *PostgresURLRepository) Insert(ctx context.Context, url model.URL) (*model.URL, error) {
 	var savedURL model.URL
 	err := r.PostgresPool.db.QueryRow(ctx, insertURLAndReturn,
@@ -126,6 +135,7 @@ func (r *PostgresURLRepository) Insert(ctx context.Context, url model.URL) (*mod
 	return &savedURL, nil
 }
 
+// SelectByID retrieves URL from PostgreSQL DB by ID.
 func (r *PostgresURLRepository) SelectByID(ctx context.Context, key string) (*model.URL, error) {
 	var url model.URL
 	err := r.PostgresPool.db.QueryRow(ctx, selectURLByID, key).
@@ -142,6 +152,7 @@ func (r *PostgresURLRepository) SelectByID(ctx context.Context, key string) (*mo
 	return &url, nil
 }
 
+// SelectAll retrieves all URL from PostgreSQL DB.
 func (r *PostgresURLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 	queryRows, err := r.PostgresPool.db.Query(ctx, selectAllURLs)
 	if err != nil {
@@ -157,6 +168,7 @@ func (r *PostgresURLRepository) SelectAll(ctx context.Context) ([]model.URL, err
 	return urls, nil
 }
 
+// DeleteAll deletes all URL from PostgreSQL DB.
 func (r *PostgresURLRepository) DeleteAll(ctx context.Context) error {
 	_, err := r.PostgresPool.db.Exec(ctx, deleteAllURLs)
 	if err != nil {
@@ -166,6 +178,9 @@ func (r *PostgresURLRepository) DeleteAll(ctx context.Context) error {
 	return nil
 }
 
+// InsertAllOrUpdate upserts URLs to PostgreSQL DB.
+//
+// performed in a single transaction with copy protocol and temp table
 func (r *PostgresURLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL) ([]model.URL, error) {
 	tx, err := r.PostgresPool.db.Begin(ctx)
 	if err != nil {
