@@ -11,6 +11,7 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
+// PostgresPool represents PostgreSQL connection pool.
 type PostgresPool struct {
 	db     *pgxpool.Pool
 	logger *zap.Logger

@@ -21,6 +21,7 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
+// URLHandler represents URL handler struct.
 type URLHandler struct {
 	urlService URLService
 	urlPrefix  string

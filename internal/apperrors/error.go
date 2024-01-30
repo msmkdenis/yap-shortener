@@ -6,6 +6,7 @@ import (
 	"fmt"
 )
 
+// Errors
 var (
 	ErrURLNotFound                  = errors.New("url not found")
 	ErrUnableToGetUserIDFromContext = errors.New("unable to get user id from context")
@@ -15,6 +16,7 @@ var (
 	ErrURLDeleted                   = errors.New("url deleted")
 )
 
+// ValueError is an error that represents a value error.
 type ValueError struct {
 	caller  string
 	message string

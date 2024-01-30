@@ -43,6 +43,7 @@ var createTmpTableLikeURL string
 //go:embed queries/upsert_and_return_urls_from_tmp_table.sql
 var upsertAndReturnURLsFromTmpTable string
 
+// PostgresURLRepository represents a PostgreSQL implementation of the URLRepository interface.
 type PostgresURLRepository struct {
 	PostgresPool *PostgresPool
 	logger       *zap.Logger

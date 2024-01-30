@@ -9,11 +9,13 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
+// JWTCheckerCreator represents JWT checker creator middleware.
 type JWTCheckerCreator struct {
 	jwtManager *utils.JWTManager
 	logger     *zap.Logger
 }
 
+// InitJWTCheckerCreator returns a new instance of JWTCheckerCreator.
 func InitJWTCheckerCreator(jwtManager *utils.JWTManager, logger *zap.Logger) *JWTCheckerCreator {
 	j := &JWTCheckerCreator{
 		jwtManager: jwtManager,

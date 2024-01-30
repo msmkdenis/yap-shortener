@@ -9,6 +9,7 @@ import (
 )
 
 type (
+	// RequestLogger represents request logger middleware.
 	RequestLogger struct {
 		ReqLogger *zap.Logger
 	}
@@ -24,6 +25,7 @@ type (
 	}
 )
 
+// InitRequestLogger returns a new instance of RequestLogger.
 func InitRequestLogger(logger *zap.Logger) *RequestLogger {
 	l := &RequestLogger{
 		ReqLogger: logger,
@@ -31,12 +33,14 @@ func InitRequestLogger(logger *zap.Logger) *RequestLogger {
 	return l
 }
 
+// Write implements the http.ResponseWriter interface.
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
 	size, err := r.ResponseWriter.Write(b)
 	r.responseData.size += size
 	return size, err
 }
 
+// WriteHeader implements the http.ResponseWriter interface.
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
 	r.ResponseWriter.WriteHeader(statusCode)
 	r.responseData.status = statusCode

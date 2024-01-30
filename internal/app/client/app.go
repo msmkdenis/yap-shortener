@@ -12,10 +12,12 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 )
 
+// Config contains the configuration for the client.
 type Config struct {
 	Address string `env:"CLIENT_ADDRESS" envDefault:"0.0.0.0:6060"`
 }
 
+// Run sends GET requests and exit after 30 seconds.
 func Run() {
 	time.AfterFunc(time.Second*30, func() {
 		os.Exit(1)

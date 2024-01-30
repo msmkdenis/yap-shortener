@@ -13,6 +13,7 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
+// URLRepository represents in-memory implementation of URLRepository.
 type URLRepository struct {
 	mu      sync.RWMutex
 	storage map[string]model.URL

@@ -25,6 +25,7 @@ type URLRepository interface {
 	Ping(ctx context.Context) error
 }
 
+// URLUseCase represents implementation of URL service.
 type URLUseCase struct {
 	repository URLRepository
 	logger     *zap.Logger

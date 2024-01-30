@@ -9,11 +9,13 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/utils"
 )
 
+// JWTAuth represents JWT authentication middleware.
 type JWTAuth struct {
 	jwtManager *utils.JWTManager
 	logger     *zap.Logger
 }
 
+// InitJWTAuth returns a new instance of JWTAuth.
 func InitJWTAuth(jwtManager *utils.JWTManager, logger *zap.Logger) *JWTAuth {
 	j := &JWTAuth{
 		jwtManager: jwtManager,

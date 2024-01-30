@@ -4,6 +4,7 @@ import (
 	"go.uber.org/zap"
 )
 
+// WorkerPool represents worker pool
 type WorkerPool struct {
 	workers   int
 	taskQueue chan func() error

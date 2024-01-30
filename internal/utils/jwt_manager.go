@@ -13,6 +13,7 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 )
 
+// JWTManager represents the JWT manager.
 type JWTManager struct {
 	logger    *zap.Logger
 	TokenName string

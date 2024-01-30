@@ -6,6 +6,7 @@ import (
 	"os"
 )
 
+// Repository represents the type of the repository.
 type Repository uint
 
 // RepositoryType represents the type of the repository.
