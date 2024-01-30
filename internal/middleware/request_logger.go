@@ -8,8 +8,8 @@ import (
 	"go.uber.org/zap"
 )
 
+// RequestLogger represents request logger middleware.
 type (
-	// RequestLogger represents request logger middleware.
 	RequestLogger struct {
 		ReqLogger *zap.Logger
 	}
