@@ -6,7 +6,7 @@ import (
 	"net/http"
 )
 
-// ErrUnknownCompressionAlgorithm error for unknown compression algorithm
+// ErrUnknownCompressionAlgorithm error for unknown compression alg
 var ErrUnknownCompressionAlgorithm = errors.New("url not found")
 
 // Writer interface for compressing
