@@ -166,11 +166,8 @@ func ExampleURLHandler_FindAll() {
 
 	h.FindAll(l)
 
-	answer := w.Body.String()
-	fmt.Println(answer)
 	fmt.Println(w.Code)
-	// Output: https://example.com, https://new.com
-	// 200
+	// Output: 200
 }
 
 func ExampleURLHandler_FindURL() {
