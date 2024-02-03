@@ -6,6 +6,8 @@ import (
 	"net/http"
 )
 
+var ErrUnknownCompressionAlgorithm = errors.New("url not found")
+
 type Writer interface {
 	Reset(rw http.ResponseWriter)
 	Header() http.Header
@@ -14,12 +16,12 @@ type Writer interface {
 	Close() error
 }
 
-func NewWriter(w http.ResponseWriter, alg string) Writer {
+func NewWriter(w http.ResponseWriter, alg string) (Writer, error) {
 	switch alg {
 	case "gzip":
-		return NewGzipWriter(w)
+		return NewGzipWriter(w), nil
 	}
-	return nil
+	return nil, ErrUnknownCompressionAlgorithm
 }
 
 type Reader interface {
@@ -33,5 +35,5 @@ func NewReader(r io.ReadCloser, alg string) (Reader, error) {
 		reader, err := NewGzipReader(r)
 		return reader, err
 	}
-	return nil, errors.New("unknown compression algorithm")
+	return nil, ErrUnknownCompressionAlgorithm
 }

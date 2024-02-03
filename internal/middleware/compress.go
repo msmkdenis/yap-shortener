@@ -2,23 +2,21 @@
 package middleware
 
 import (
-	"net/http"
-	"strings"
-
 	"github.com/labstack/echo/v4"
 	"github.com/msmkdenis/yap-shortener/pkg/compressor"
+	"net/http"
 )
 
 // Decompress returns a middleware that decompresses the request body if it is encoded with compressor.
 func Decompress() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if c.Request().Header.Get("Content-Encoding") != "gzip" {
+			decompress := c.Request().Header.Get("Content-Encoding")
+			if decompress == "" {
 				return next(c)
 			}
 			b := c.Request().Body
-			reader, err := compressor.NewReader(b, "gzip")
-			//decompressingReader, err := compressor.NewGzipReader(b)
+			reader, err := compressor.NewReader(b, decompress)
 			if err == nil {
 				c.Request().Body = reader
 				return next(c)
@@ -32,10 +30,13 @@ func Decompress() echo.MiddlewareFunc {
 func Compress() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if strings.Contains(c.Request().Header.Get("Accept-Encoding"), "gzip") {
-				rw := c.Response().Writer
-				cw := compressor.NewWriter(rw, "gzip")
-				cw.Reset(rw)
+			compress := c.Response().Header().Get("Content-Encoding")
+			if compress == "" {
+				return next(c)
+			}
+			cw, err := compressor.NewWriter(c.Response().Writer, compress)
+			if err != nil {
+				cw.Reset(c.Response().Writer)
 			}
 			return next(c)
 		}
