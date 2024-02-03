@@ -6,10 +6,10 @@ package mock
 
 import (
 	context "context"
+	"github.com/msmkdenis/yap-shortener/internal/dto"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
-	dto "github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 	model "github.com/msmkdenis/yap-shortener/internal/model"
 )
 

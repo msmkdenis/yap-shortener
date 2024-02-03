@@ -6,17 +6,17 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 
-	"github.com/msmkdenis/yap-shortener/internal/utils"
+	"github.com/msmkdenis/yap-shortener/pkg/auth"
 )
 
 // JWTAuth represents JWT authentication middleware.
 type JWTAuth struct {
-	jwtManager *utils.JWTManager
+	jwtManager *auth.JWTManager
 	logger     *zap.Logger
 }
 
 // InitJWTAuth returns a new instance of JWTAuth.
-func InitJWTAuth(jwtManager *utils.JWTManager, logger *zap.Logger) *JWTAuth {
+func InitJWTAuth(jwtManager *auth.JWTManager, logger *zap.Logger) *JWTAuth {
 	j := &JWTAuth{
 		jwtManager: jwtManager,
 		logger:     logger,

@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"github.com/msmkdenis/yap-shortener/internal/dto"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -15,12 +16,11 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 
-	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/config"
-	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
 	"github.com/msmkdenis/yap-shortener/internal/model"
-	"github.com/msmkdenis/yap-shortener/internal/utils"
+	urlErr "github.com/msmkdenis/yap-shortener/internal/url_err"
+	"github.com/msmkdenis/yap-shortener/pkg/auth"
 )
 
 var cfgMock = &config.Config{
@@ -46,7 +46,7 @@ func TestSuite(t *testing.T) {
 func (s *URLHandlerTestSuite) SetupTest() {
 	cfgMock.URLPrefix = "http://localhost:8080"
 	logger, _ := zap.NewProduction()
-	jwtManager := utils.InitJWTManager(cfgMock.TokenName, cfgMock.SecretKey, logger)
+	jwtManager := auth.InitJWTManager(cfgMock.TokenName, cfgMock.SecretKey, logger)
 	s.ctrl = gomock.NewController(s.T())
 	s.echo = echo.New()
 	s.urlService = mock.NewMockURLService(s.ctrl)
@@ -256,7 +256,7 @@ func (s *URLHandlerTestSuite) TestFindAllURLByUserID_NoContent() {
 
 	for _, test := range testCases {
 		s.T().Run(test.name, func(t *testing.T) {
-			s.urlService.EXPECT().GetAllByUserID(gomock.Any(), gomock.Any()).Times(1).Return(nil, apperrors.ErrURLNotFound)
+			s.urlService.EXPECT().GetAllByUserID(gomock.Any(), gomock.Any()).Times(1).Return(nil, urlErr.ErrURLNotFound)
 			request := httptest.NewRequest(test.method, test.path, strings.NewReader(""))
 			w := httptest.NewRecorder()
 			l := s.echo.NewContext(request, w)
@@ -584,7 +584,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_UrlAlreadyExists() {
 	requestBody := dto.URLRequest{URL: "https://example.com"}
 	url := &model.URL{Original: "https://example.com", Shortened: "test"}
 	responseBody := dto.URLResponse{Result: url.Shortened}
-	mockErr := apperrors.ErrURLAlreadyExists
+	mockErr := urlErr.ErrURLAlreadyExists
 
 	testCases := []struct {
 		name         string
@@ -756,7 +756,7 @@ func (s *URLHandlerTestSuite) TestAddURL_UrlAlreadyExists() {
 	requestBody := "https://example.com"
 	url := &model.URL{Original: "https://example.com", Shortened: "test"}
 	responseBody := url.Shortened
-	mockErr := apperrors.ErrURLAlreadyExists
+	mockErr := urlErr.ErrURLAlreadyExists
 
 	testCases := []struct {
 		name         string

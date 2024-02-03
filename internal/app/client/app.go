@@ -2,14 +2,13 @@
 package client
 
 import (
+	"github.com/msmkdenis/yap-shortener/internal/dto"
 	"math/rand"
 	"os"
 	"time"
 
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"
-
-	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 )
 
 // Config contains the configuration for the client.

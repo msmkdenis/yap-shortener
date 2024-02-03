@@ -4,17 +4,15 @@ package shortener
 import (
 	"context"
 	"errors"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
+	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-
-	"github.com/msmkdenis/yap-shortener/pkg/echopprof"
-
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
-	"go.uber.org/zap"
 
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/handlers"
@@ -22,7 +20,8 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/repository/file"
 	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 	"github.com/msmkdenis/yap-shortener/internal/service"
-	"github.com/msmkdenis/yap-shortener/internal/utils"
+	"github.com/msmkdenis/yap-shortener/pkg/auth"
+	"github.com/msmkdenis/yap-shortener/pkg/echopprof"
 )
 
 // URLShortenerRun runs the URL shortener service. Graceful shutdown is implemented.
@@ -34,7 +33,7 @@ func URLShortenerRun() {
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
-	jwtManager := utils.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtManager := auth.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
 	repository := initRepository(&cfg, logger)
 	urlService := service.NewURLService(repository, logger)
 

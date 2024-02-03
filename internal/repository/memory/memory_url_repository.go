@@ -8,9 +8,9 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/model"
-	"github.com/msmkdenis/yap-shortener/internal/utils"
+	urlErr "github.com/msmkdenis/yap-shortener/internal/url_err"
+	"github.com/msmkdenis/yap-shortener/pkg/apperr"
 )
 
 // URLRepository represents in-memory implementation of URLRepository.
@@ -57,7 +57,7 @@ func (r *URLRepository) SelectAllByUserID(ctx context.Context, userID string) ([
 	}
 
 	if len(urls) == 0 {
-		return nil, apperrors.NewValueError(fmt.Sprintf("urls not found by user %s", userID), utils.Caller(), apperrors.ErrURLNotFound)
+		return nil, apperr.NewValueError(fmt.Sprintf("urls not found by user %s", userID), apperr.Caller(), urlErr.ErrURLNotFound)
 	}
 
 	return urls, nil
@@ -81,7 +81,7 @@ func (r *URLRepository) SelectByID(ctx context.Context, key string) (*model.URL,
 
 	url, ok := r.storage[key]
 	if !ok {
-		return &url, apperrors.ErrURLNotFound
+		return &url, urlErr.ErrURLNotFound
 	}
 
 	return &url, nil
@@ -112,7 +112,7 @@ func (r *URLRepository) DeleteAll(ctx context.Context) error {
 // Ping pings the storage
 func (r *URLRepository) Ping(ctx context.Context) error {
 	if r.storage == nil {
-		return apperrors.NewValueError("storage is not initialized", utils.Caller(), apperrors.ErrURLNotFound)
+		return apperr.NewValueError("storage is not initialized", apperr.Caller(), urlErr.ErrURLNotFound)
 	}
 
 	return nil

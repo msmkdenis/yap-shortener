@@ -7,10 +7,11 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/msmkdenis/yap-shortener/internal/apperrors"
-	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
+	"github.com/msmkdenis/yap-shortener/internal/dto"
 	"github.com/msmkdenis/yap-shortener/internal/model"
-	"github.com/msmkdenis/yap-shortener/internal/utils"
+	urlErr "github.com/msmkdenis/yap-shortener/internal/url_err"
+	"github.com/msmkdenis/yap-shortener/pkg/apperr"
+	"github.com/msmkdenis/yap-shortener/pkg/hasher"
 )
 
 // URLRepository represents URL repository interface.
@@ -43,7 +44,7 @@ func NewURLService(repository URLRepository, logger *zap.Logger) *URLUseCase {
 func (u *URLUseCase) GetAllByUserID(ctx context.Context, userID string) ([]dto.URLBatchResponseByUserID, error) {
 	urls, err := u.repository.SelectAllByUserID(ctx, userID)
 	if err != nil {
-		return nil, fmt.Errorf("%s %w", utils.Caller(), err)
+		return nil, fmt.Errorf("%s %w", apperr.Caller(), err)
 	}
 
 	response := make([]dto.URLBatchResponseByUserID, len(urls))
@@ -61,7 +62,7 @@ func (u *URLUseCase) GetAllByUserID(ctx context.Context, userID string) ([]dto.U
 func (u *URLUseCase) DeleteURLByUserID(ctx context.Context, userID string, shortURL string) error {
 	err := u.repository.DeleteURLByUserID(ctx, userID, shortURL)
 	if err != nil {
-		return fmt.Errorf("%s %w", utils.Caller(), err)
+		return fmt.Errorf("%s %w", apperr.Caller(), err)
 	}
 
 	return nil
@@ -69,7 +70,7 @@ func (u *URLUseCase) DeleteURLByUserID(ctx context.Context, userID string, short
 
 // Add adds a new URL.
 func (u *URLUseCase) Add(ctx context.Context, s, host string, userID string) (*model.URL, error) {
-	urlKey := utils.GenerateMD5Hash(s)
+	urlKey := hasher.GenerateMD5Hash(s)
 	url := &model.URL{
 		ID:          urlKey,
 		Original:    s,
@@ -80,12 +81,12 @@ func (u *URLUseCase) Add(ctx context.Context, s, host string, userID string) (*m
 
 	existingURL, err := u.repository.SelectByID(ctx, urlKey)
 	if err == nil {
-		return existingURL, fmt.Errorf("%s %w", utils.Caller(), apperrors.ErrURLAlreadyExists)
+		return existingURL, fmt.Errorf("%s %w", apperr.Caller(), urlErr.ErrURLAlreadyExists)
 	}
 
 	savedURL, err := u.repository.Insert(ctx, *url)
 	if err != nil {
-		return nil, fmt.Errorf("%s %w", utils.Caller(), err)
+		return nil, fmt.Errorf("%s %w", apperr.Caller(), err)
 	}
 
 	return savedURL, nil
@@ -95,7 +96,7 @@ func (u *URLUseCase) Add(ctx context.Context, s, host string, userID string) (*m
 func (u *URLUseCase) GetAll(ctx context.Context) ([]string, error) {
 	urls, err := u.repository.SelectAll(ctx)
 	if err != nil {
-		return nil, fmt.Errorf("%s %w", utils.Caller(), err)
+		return nil, fmt.Errorf("%s %w", apperr.Caller(), err)
 	}
 
 	originalURLs := make([]string, 0, len(urls))
@@ -109,7 +110,7 @@ func (u *URLUseCase) GetAll(ctx context.Context) ([]string, error) {
 // DeleteAll deletes all URLs.
 func (u *URLUseCase) DeleteAll(ctx context.Context) error {
 	if err := u.repository.DeleteAll(ctx); err != nil {
-		return fmt.Errorf("%s %w", utils.Caller(), err)
+		return fmt.Errorf("%s %w", apperr.Caller(), err)
 	}
 	return nil
 }
@@ -118,11 +119,11 @@ func (u *URLUseCase) DeleteAll(ctx context.Context) error {
 func (u *URLUseCase) GetByyID(ctx context.Context, key string) (string, error) {
 	url, err := u.repository.SelectByID(ctx, key)
 	if err != nil {
-		return "", fmt.Errorf("%s %w", utils.Caller(), err)
+		return "", fmt.Errorf("%s %w", apperr.Caller(), err)
 	}
 
 	if url.DeletedFlag {
-		return "", apperrors.NewValueError("deleted url", utils.Caller(), apperrors.ErrURLDeleted)
+		return "", apperr.NewValueError("deleted url", apperr.Caller(), urlErr.ErrURLDeleted)
 	}
 
 	return url.Original, nil
@@ -140,10 +141,10 @@ func (u *URLUseCase) AddAll(ctx context.Context, urls []dto.URLBatchRequest, hos
 	keys := make(map[string]string, len(urls))
 	for _, v := range urls {
 		if _, ok := keys[v.CorrelationID]; ok {
-			return nil, apperrors.NewValueError("duplicated keys", utils.Caller(), apperrors.ErrDuplicatedKeys)
+			return nil, apperr.NewValueError("duplicated keys", apperr.Caller(), urlErr.ErrDuplicatedKeys)
 		}
 		keys[v.CorrelationID] = v.CorrelationID
-		shortURL := utils.GenerateMD5Hash(v.OriginalURL)
+		shortURL := hasher.GenerateMD5Hash(v.OriginalURL)
 		url := model.URL{
 			ID:            shortURL,
 			Original:      v.OriginalURL,
@@ -157,7 +158,7 @@ func (u *URLUseCase) AddAll(ctx context.Context, urls []dto.URLBatchRequest, hos
 
 	savedURLs, err := u.repository.InsertAllOrUpdate(ctx, urlsToSave)
 	if err != nil {
-		return nil, fmt.Errorf("%s %w", utils.Caller(), err)
+		return nil, fmt.Errorf("%s %w", apperr.Caller(), err)
 	}
 
 	response := make([]dto.URLBatchResponse, 0, len(savedURLs))

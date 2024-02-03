@@ -1,4 +1,4 @@
-package utils
+package worker_pool
 
 import (
 	"go.uber.org/zap"

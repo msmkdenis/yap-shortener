@@ -2,45 +2,14 @@
 package middleware
 
 import (
-	"compress/gzip"
-	"io"
 	"net/http"
 	"strings"
 
 	"github.com/labstack/echo/v4"
+	"github.com/msmkdenis/yap-shortener/pkg/compressor"
 )
 
-type compressReader struct {
-	r  io.ReadCloser
-	zr *gzip.Reader
-}
-
-// Read implements io.Reader.
-func (c *compressReader) Read(p []byte) (n int, err error) {
-	return c.zr.Read(p)
-}
-
-// Close implements io.Closer.
-func (c *compressReader) Close() error {
-	if err := c.r.Close(); err != nil {
-		return err
-	}
-	return c.zr.Close()
-}
-
-func newCompressReader(r io.ReadCloser) (*compressReader, error) {
-	zr, err := gzip.NewReader(r)
-	if err != nil {
-		return nil, err
-	}
-
-	return &compressReader{
-		r:  r,
-		zr: zr,
-	}, nil
-}
-
-// Decompress returns a middleware that decompresses the request body if it is encoded with gzip.
+// Decompress returns a middleware that decompresses the request body if it is encoded with compressor.
 func Decompress() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -48,9 +17,10 @@ func Decompress() echo.MiddlewareFunc {
 				return next(c)
 			}
 			b := c.Request().Body
-			decompressingReader, err := newCompressReader(b)
+			reader, err := compressor.NewReader(b, "gzip")
+			//decompressingReader, err := compressor.NewGzipReader(b)
 			if err == nil {
-				c.Request().Body = decompressingReader
+				c.Request().Body = reader
 				return next(c)
 			}
 			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
@@ -58,49 +28,14 @@ func Decompress() echo.MiddlewareFunc {
 	}
 }
 
-type compressWriter struct {
-	w  http.ResponseWriter
-	zw *gzip.Writer
-}
-
-func newCompressWriter(w http.ResponseWriter) *compressWriter {
-	return &compressWriter{
-		w:  w,
-		zw: gzip.NewWriter(w),
-	}
-}
-
-// Header implements http.ResponseWriter.
-func (c *compressWriter) Header() http.Header {
-	return c.w.Header()
-}
-
-// Write implements io.Writer.
-func (c *compressWriter) Write(p []byte) (int, error) {
-	return c.zw.Write(p)
-}
-
-// WriteHeader implements http.ResponseWriter.
-func (c *compressWriter) WriteHeader(statusCode int) {
-	if statusCode < 300 {
-		c.w.Header().Set("Content-Encoding", "gzip")
-	}
-	c.w.WriteHeader(statusCode)
-}
-
-// Close implements io.Closer.
-func (c *compressWriter) Close() error {
-	return c.zw.Close()
-}
-
-// Compress returns a middleware function that compresses the response using gzip if the client supports it.
+// Compress returns a middleware function that compresses the response using compressor if the client supports it.
 func Compress() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			if strings.Contains(c.Request().Header.Get("Accept-Encoding"), "gzip") {
 				rw := c.Response().Writer
-				cw := newCompressWriter(rw)
-				cw.zw.Reset(rw)
+				cw := compressor.NewWriter(rw, "gzip")
+				cw.Reset(rw)
 			}
 			return next(c)
 		}

@@ -1,19 +1,11 @@
-// Package apperrors implements the application errors.
-package apperrors
+// Package url_err implements the application errors.
+package apperr
 
 import (
-	"errors"
 	"fmt"
-)
-
-// Errors
-var (
-	ErrURLNotFound                  = errors.New("url not found")
-	ErrUnableToGetUserIDFromContext = errors.New("unable to get user id from context")
-	ErrEmptyRequest                 = errors.New("unable to handle empty request")
-	ErrDuplicatedKeys               = errors.New("duplicated keys in batch")
-	ErrURLAlreadyExists             = errors.New("url already exists")
-	ErrURLDeleted                   = errors.New("url deleted")
+	"path"
+	"path/filepath"
+	"runtime"
 )
 
 // ValueError is an error that represents a value error.
@@ -54,4 +46,16 @@ func (v *ValueError) Error() string {
 // No parameters. Returns an error.
 func (v *ValueError) Unwrap() error {
 	return v.err
+}
+
+// Caller returns file name and line number of function call
+func Caller() string {
+	_, file, lineNo, ok := runtime.Caller(1)
+	if !ok {
+		return "runtime.Caller() failed"
+	}
+
+	fileName := path.Base(file)
+	dir := filepath.Base(filepath.Dir(file))
+	return fmt.Sprintf("%s/%s:%d", dir, fileName, lineNo)
 }

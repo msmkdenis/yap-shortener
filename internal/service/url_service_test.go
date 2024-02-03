@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"github.com/msmkdenis/yap-shortener/internal/dto"
 	"math/rand"
 	"testing"
 	"time"
@@ -14,11 +15,10 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 
-	"github.com/msmkdenis/yap-shortener/internal/apperrors"
-	"github.com/msmkdenis/yap-shortener/internal/handlers/dto"
 	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
 	"github.com/msmkdenis/yap-shortener/internal/model"
-	"github.com/msmkdenis/yap-shortener/internal/utils"
+	urlErr "github.com/msmkdenis/yap-shortener/internal/url_err"
+	"github.com/msmkdenis/yap-shortener/pkg/hasher"
 )
 
 type URLServiceTestSuite struct {
@@ -136,7 +136,7 @@ func (u *URLServiceTestSuite) TestAdd() {
 	s := generateString(10, rnd)
 	host := generateString(4, rnd)
 	userID := uuid.New().String()
-	urlKey := utils.GenerateMD5Hash(s)
+	urlKey := hasher.GenerateMD5Hash(s)
 	url := &model.URL{
 		ID:          urlKey,
 		Original:    s,
@@ -171,7 +171,7 @@ func (u *URLServiceTestSuite) TestAdd() {
 				u.urlRepository.EXPECT().SelectByID(gomock.Any(), urlKey).Return(url, nil)
 			},
 			expectedBody:  url,
-			expectedError: apperrors.ErrURLAlreadyExists,
+			expectedError: urlErr.ErrURLAlreadyExists,
 		},
 		{
 			name: "Error while add",
@@ -300,7 +300,7 @@ func (u *URLServiceTestSuite) TestGetByID() {
 	s := generateString(10, rnd)
 	host := generateString(4, rnd)
 	userID := uuid.New().String()
-	urlKey := utils.GenerateMD5Hash(s)
+	urlKey := hasher.GenerateMD5Hash(s)
 	url := &model.URL{
 		ID:          urlKey,
 		Original:    s,
@@ -331,7 +331,7 @@ func (u *URLServiceTestSuite) TestGetByID() {
 				url.DeletedFlag = true
 				u.urlRepository.EXPECT().SelectByID(gomock.Any(), urlKey).Return(url, nil)
 			},
-			expectedError: apperrors.ErrURLDeleted,
+			expectedError: urlErr.ErrURLDeleted,
 		},
 		{
 			name: "Error",
@@ -373,7 +373,7 @@ func (u *URLServiceTestSuite) TestAddAll() {
 		}
 		urlBatchRequest = append(urlBatchRequest, request)
 
-		shortURL := utils.GenerateMD5Hash(request.OriginalURL)
+		shortURL := hasher.GenerateMD5Hash(request.OriginalURL)
 		url := model.URL{
 			ID:            shortURL,
 			Original:      request.OriginalURL,
@@ -386,7 +386,7 @@ func (u *URLServiceTestSuite) TestAddAll() {
 
 		response := dto.URLBatchResponse{
 			CorrelationID: request.CorrelationID,
-			ShortenedURL:  host + "/" + utils.GenerateMD5Hash(request.OriginalURL),
+			ShortenedURL:  host + "/" + hasher.GenerateMD5Hash(request.OriginalURL),
 		}
 		urlBatchResponse = append(urlBatchResponse, response)
 	}
@@ -413,7 +413,7 @@ func (u *URLServiceTestSuite) TestAddAll() {
 				urlBatchRequest[0].CorrelationID = uuid.New().String()
 				urlBatchRequest[1].CorrelationID = urlBatchRequest[0].CorrelationID
 			},
-			expectedError: apperrors.ErrDuplicatedKeys,
+			expectedError: urlErr.ErrDuplicatedKeys,
 		},
 		{
 			name: "Error",

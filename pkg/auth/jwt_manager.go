@@ -1,16 +1,15 @@
 // Package utils provides some utilities.
-package utils
+package auth
 
 import (
 	"errors"
 	"fmt"
+	"github.com/msmkdenis/yap-shortener/pkg/apperr"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
-
-	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 )
 
 // JWTManager represents the JWT manager.
@@ -63,7 +62,7 @@ func (j *JWTManager) GetUserID(tokenString string) (string, error) {
 	token, err := jwt.ParseWithClaims(tokenString, claims,
 		func(t *jwt.Token) (interface{}, error) {
 			if _, ok := t.Method.(*jwt.SigningMethodHMAC); !ok {
-				return nil, apperrors.NewValueError(fmt.Sprintf("unexpected signing method: %v", t.Header["alg"]), Caller(), errors.New("unexpected signing method"))
+				return nil, apperr.NewValueError(fmt.Sprintf("unexpected signing method: %v", t.Header["alg"]), apperr.Caller(), errors.New("unexpected signing method"))
 			}
 			return []byte(j.secretKey), nil
 		})
@@ -73,7 +72,7 @@ func (j *JWTManager) GetUserID(tokenString string) (string, error) {
 
 	if !token.Valid {
 		j.logger.Warn("token is not valid", zap.Error(err))
-		return "", apperrors.NewValueError("token is not valid", Caller(), errors.New("token is not valid"))
+		return "", apperr.NewValueError("token is not valid", apperr.Caller(), errors.New("token is not valid"))
 	}
 
 	return claims.UserID, nil
