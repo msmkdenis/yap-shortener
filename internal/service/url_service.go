@@ -9,7 +9,7 @@ import (
 
 	"github.com/msmkdenis/yap-shortener/internal/dto"
 	"github.com/msmkdenis/yap-shortener/internal/model"
-	urlErr "github.com/msmkdenis/yap-shortener/internal/url_err"
+	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
 	"github.com/msmkdenis/yap-shortener/pkg/apperr"
 	"github.com/msmkdenis/yap-shortener/pkg/hasher"
 )

@@ -17,10 +17,10 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/dto"
 	"github.com/msmkdenis/yap-shortener/internal/middleware"
 	"github.com/msmkdenis/yap-shortener/internal/model"
-	urlErr "github.com/msmkdenis/yap-shortener/internal/url_err"
+	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
 	"github.com/msmkdenis/yap-shortener/pkg/apperr"
 	"github.com/msmkdenis/yap-shortener/pkg/auth"
-	"github.com/msmkdenis/yap-shortener/pkg/worker_pool"
+	"github.com/msmkdenis/yap-shortener/pkg/workerpool"
 )
 
 // URLHandler represents URL handler struct.
@@ -130,7 +130,7 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 		return c.NoContent(http.StatusInternalServerError)
 	}
 
-	workerPool := worker_pool.NewWorkerPool(100, h.logger)
+	workerPool := workerpool.NewWorkerPool(100, h.logger)
 	workerPool.Start()
 	defer workerPool.Stop()
 

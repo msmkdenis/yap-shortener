@@ -17,7 +17,7 @@ import (
 
 	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
 	"github.com/msmkdenis/yap-shortener/internal/model"
-	urlErr "github.com/msmkdenis/yap-shortener/internal/url_err"
+	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
 	"github.com/msmkdenis/yap-shortener/pkg/hasher"
 )
 

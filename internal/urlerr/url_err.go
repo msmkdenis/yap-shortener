@@ -1,5 +1,5 @@
 // Package url_err contains the errors for the url domain.
-package url_err
+package urlerr
 
 import "errors"
 
