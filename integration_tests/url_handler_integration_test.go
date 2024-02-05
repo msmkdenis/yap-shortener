@@ -24,6 +24,11 @@ import (
 	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
 
+var cfgMock = &config.Config{
+	TokenName: "test",
+	SecretKey: "test",
+}
+
 type IntegrationTestSuite struct {
 	suite.Suite
 	urlHandler    *handlers.URLHandler
@@ -40,7 +45,6 @@ func TestSuite(t *testing.T) {
 }
 
 func (s *IntegrationTestSuite) SetupTest() {
-	cfg := *config.NewConfig()
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Error("Unable to initialize zap logger", zap.Error(err))
@@ -52,7 +56,7 @@ func (s *IntegrationTestSuite) SetupTest() {
 	}
 
 	s.urlRepository = db.NewPostgresURLRepository(s.pool, logger)
-	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtManager := jwtgen.InitJWTManager(cfgMock.TokenName, cfgMock.SecretKey, logger)
 	s.urlService = service.NewURLService(s.urlRepository, logger)
 	s.echo = echo.New()
 	s.endpoint, err = s.container.Endpoint(context.Background(), "http")
@@ -69,6 +73,7 @@ func (s *IntegrationTestSuite) TestAddURL() {
 		name         string
 		method       string
 		header       http.Header
+		prepare      func()
 		path         string
 		body         string
 		expectedCode int
@@ -102,10 +107,57 @@ func (s *IntegrationTestSuite) TestAddURL() {
 	for _, tc := range testCases {
 		s.T().Run(tc.name, func(t *testing.T) {
 			req := httptest.NewRequest(tc.method, tc.path, bytes.NewBuffer([]byte(tc.body)))
+
 			req.Header = tc.header
 			rec := httptest.NewRecorder()
 
 			s.echo.ServeHTTP(rec, req)
+
+			assert.Equal(t, tc.expectedCode, rec.Code)
+			assert.Equal(t, tc.expectedBody, rec.Body.Bytes())
+		})
+	}
+}
+
+func (s *IntegrationTestSuite) TestAddURL_Context() {
+	body := "https://example.com"
+
+	testCases := []struct {
+		name         string
+		method       string
+		header       http.Header
+		prepare      func()
+		path         string
+		body         string
+		expectedCode int
+		expectedBody []byte
+	}{
+		{
+			name:         "UnableToGetUserIDFromContext - 500",
+			method:       http.MethodPost,
+			path:         s.endpoint + "/",
+			body:         body,
+			expectedCode: http.StatusInternalServerError,
+		},
+		{
+			name:         "Bad request - 400 (unable to read body)",
+			method:       http.MethodPost,
+			path:         s.endpoint + "/",
+			body:         "",
+			expectedCode: http.StatusBadRequest,
+			expectedBody: []byte("Error: Unable to handle empty request"),
+		},
+	}
+	for _, tc := range testCases {
+		s.T().Run(tc.name, func(t *testing.T) {
+			req := httptest.NewRequest(tc.method, tc.path, bytes.NewBuffer([]byte(tc.body)))
+			req.Header = tc.header
+			rec := httptest.NewRecorder()
+
+			c := s.echo.NewContext(req, rec)
+
+			err := s.urlHandler.AddURL(c)
+			assert.NoError(t, err)
 
 			assert.Equal(t, tc.expectedCode, rec.Code)
 			assert.Equal(t, tc.expectedBody, rec.Body.Bytes())
