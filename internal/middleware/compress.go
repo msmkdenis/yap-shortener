@@ -19,11 +19,11 @@ func Decompress() echo.MiddlewareFunc {
 			}
 			b := c.Request().Body
 			reader, err := compressor.NewReader(b, decompress)
-			if err == nil {
-				c.Request().Body = reader
-				return next(c)
+			if err != nil {
+				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 			}
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			c.Request().Body = reader
+			return next(c)
 		}
 	}
 }
@@ -38,10 +38,10 @@ func Compress() echo.MiddlewareFunc {
 			}
 			cw, err := compressor.NewWriter(c.Response().Writer, compress)
 			if err != nil {
-				cw.Reset(c.Response().Writer)
-				return next(c)
+				return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
 			}
-			return echo.NewHTTPError(http.StatusInternalServerError, err.Error())
+			cw.Reset(c.Response().Writer)
+			return next(c)
 		}
 	}
 }
