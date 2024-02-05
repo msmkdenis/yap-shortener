@@ -21,7 +21,7 @@ import (
 	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
-	"github.com/msmkdenis/yap-shortener/pkg/auth"
+	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
 
 var cfgMock = &config.Config{
@@ -47,7 +47,7 @@ func TestSuite(t *testing.T) {
 func (s *URLHandlerTestSuite) SetupTest() {
 	cfgMock.URLPrefix = "http://localhost:8080"
 	logger, _ := zap.NewProduction()
-	jwtManager := auth.InitJWTManager(cfgMock.TokenName, cfgMock.SecretKey, logger)
+	jwtManager := jwtgen.InitJWTManager(cfgMock.TokenName, cfgMock.SecretKey, logger)
 	s.ctrl = gomock.NewController(s.T())
 	s.echo = echo.New()
 	s.urlService = mock.NewMockURLService(s.ctrl)

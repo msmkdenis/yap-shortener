@@ -16,8 +16,8 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/dto"
 	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 	"github.com/msmkdenis/yap-shortener/internal/service"
-	"github.com/msmkdenis/yap-shortener/pkg/auth"
 	"github.com/msmkdenis/yap-shortener/pkg/echopprof"
+	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
 
 var cfgExampleTest = &config.Config{
@@ -34,7 +34,7 @@ func ExampleURLHandler_AddURL() {
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
-	jwtManager := auth.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
 	repository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(repository, logger)
 
@@ -62,7 +62,7 @@ func ExampleURLHandler_FindAllURLByUserID() {
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
-	jwtManager := auth.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
 	repository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(repository, logger)
 
@@ -91,7 +91,7 @@ func ExampleURLHandler_AddBatch() {
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
-	jwtManager := auth.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
 	repository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(repository, logger)
 
@@ -136,7 +136,7 @@ func ExampleURLHandler_FindAll() {
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
-	jwtManager := auth.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
 	repository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(repository, logger)
 
@@ -176,7 +176,7 @@ func ExampleURLHandler_FindURL() {
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
-	jwtManager := auth.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
 	repository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(repository, logger)
 
@@ -203,7 +203,7 @@ func ExampleURLHandler_AddShorten() {
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
-	jwtManager := auth.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
 	repository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(repository, logger)
 

@@ -19,7 +19,7 @@ import (
 	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
-	"github.com/msmkdenis/yap-shortener/pkg/hasher"
+	"github.com/msmkdenis/yap-shortener/pkg/hashgen"
 )
 
 type URLServiceTestSuite struct {
@@ -137,7 +137,7 @@ func (u *URLServiceTestSuite) TestAdd() {
 	s := generateString(10, rnd)
 	host := generateString(4, rnd)
 	userID := uuid.New().String()
-	urlKey := hasher.GenerateMD5Hash(s)
+	urlKey := hashgen.GenerateMD5Hash(s)
 	url := &model.URL{
 		ID:          urlKey,
 		Original:    s,
@@ -301,7 +301,7 @@ func (u *URLServiceTestSuite) TestGetByID() {
 	s := generateString(10, rnd)
 	host := generateString(4, rnd)
 	userID := uuid.New().String()
-	urlKey := hasher.GenerateMD5Hash(s)
+	urlKey := hashgen.GenerateMD5Hash(s)
 	url := &model.URL{
 		ID:          urlKey,
 		Original:    s,
@@ -374,7 +374,7 @@ func (u *URLServiceTestSuite) TestAddAll() {
 		}
 		urlBatchRequest = append(urlBatchRequest, request)
 
-		shortURL := hasher.GenerateMD5Hash(request.OriginalURL)
+		shortURL := hashgen.GenerateMD5Hash(request.OriginalURL)
 		url := model.URL{
 			ID:            shortURL,
 			Original:      request.OriginalURL,
@@ -387,7 +387,7 @@ func (u *URLServiceTestSuite) TestAddAll() {
 
 		response := dto.URLBatchResponse{
 			CorrelationID: request.CorrelationID,
-			ShortenedURL:  host + "/" + hasher.GenerateMD5Hash(request.OriginalURL),
+			ShortenedURL:  host + "/" + hashgen.GenerateMD5Hash(request.OriginalURL),
 		}
 		urlBatchResponse = append(urlBatchResponse, response)
 	}

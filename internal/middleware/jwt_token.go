@@ -6,17 +6,17 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 
-	"github.com/msmkdenis/yap-shortener/pkg/auth"
+	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
 
 // JWTCheckerCreator represents JWT checker creator middleware.
 type JWTCheckerCreator struct {
-	jwtManager *auth.JWTManager
+	jwtManager *jwtgen.JWTManager
 	logger     *zap.Logger
 }
 
 // InitJWTCheckerCreator returns a new instance of JWTCheckerCreator.
-func InitJWTCheckerCreator(jwtManager *auth.JWTManager, logger *zap.Logger) *JWTCheckerCreator {
+func InitJWTCheckerCreator(jwtManager *jwtgen.JWTManager, logger *zap.Logger) *JWTCheckerCreator {
 	j := &JWTCheckerCreator{
 		jwtManager: jwtManager,
 		logger:     logger,

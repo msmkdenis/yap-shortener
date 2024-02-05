@@ -1,4 +1,4 @@
-package hasher
+package hashgen
 
 import (
 	"crypto/md5"

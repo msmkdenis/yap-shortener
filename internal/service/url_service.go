@@ -11,7 +11,7 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
 	"github.com/msmkdenis/yap-shortener/pkg/apperr"
-	"github.com/msmkdenis/yap-shortener/pkg/hasher"
+	"github.com/msmkdenis/yap-shortener/pkg/hashgen"
 )
 
 // URLRepository represents URL repository interface.
@@ -70,7 +70,7 @@ func (u *URLUseCase) DeleteURLByUserID(ctx context.Context, userID string, short
 
 // Add adds a new URL.
 func (u *URLUseCase) Add(ctx context.Context, s, host string, userID string) (*model.URL, error) {
-	urlKey := hasher.GenerateMD5Hash(s)
+	urlKey := hashgen.GenerateMD5Hash(s)
 	url := &model.URL{
 		ID:          urlKey,
 		Original:    s,
@@ -144,7 +144,7 @@ func (u *URLUseCase) AddAll(ctx context.Context, urls []dto.URLBatchRequest, hos
 			return nil, apperr.NewValueError("duplicated keys", apperr.Caller(), urlErr.ErrDuplicatedKeys)
 		}
 		keys[v.CorrelationID] = v.CorrelationID
-		shortURL := hasher.GenerateMD5Hash(v.OriginalURL)
+		shortURL := hashgen.GenerateMD5Hash(v.OriginalURL)
 		url := model.URL{
 			ID:            shortURL,
 			Original:      v.OriginalURL,

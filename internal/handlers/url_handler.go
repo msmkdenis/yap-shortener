@@ -19,7 +19,7 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
 	"github.com/msmkdenis/yap-shortener/pkg/apperr"
-	"github.com/msmkdenis/yap-shortener/pkg/auth"
+	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 	"github.com/msmkdenis/yap-shortener/pkg/workerpool"
 )
 
@@ -27,7 +27,7 @@ import (
 type URLHandler struct {
 	urlService URLService
 	urlPrefix  string
-	jwtManager *auth.JWTManager
+	jwtManager *jwtgen.JWTManager
 	logger     *zap.Logger
 }
 
@@ -46,7 +46,7 @@ type URLService interface {
 // NewURLHandler creates a new URLHandler instance
 //
 // Registers the URL shortener service http handlers.
-func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, jwtManager *auth.JWTManager, logger *zap.Logger) *URLHandler {
+func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, jwtManager *jwtgen.JWTManager, logger *zap.Logger) *URLHandler {
 	handler := &URLHandler{
 		urlService: service,
 		urlPrefix:  urlPrefix,

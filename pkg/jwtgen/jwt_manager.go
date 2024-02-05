@@ -1,5 +1,5 @@
 // Package utils provides some utilities.
-package auth
+package jwtgen
 
 import (
 	"errors"
