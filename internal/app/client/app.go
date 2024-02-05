@@ -2,10 +2,11 @@
 package client
 
 import (
-	"github.com/msmkdenis/yap-shortener/internal/dto"
 	"math/rand"
 	"os"
 	"time"
+
+	"github.com/msmkdenis/yap-shortener/internal/dto"
 
 	"github.com/go-resty/resty/v2"
 	"go.uber.org/zap"

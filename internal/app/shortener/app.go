@@ -4,15 +4,15 @@ package shortener
 import (
 	"context"
 	"errors"
-
-	"github.com/labstack/echo/v4"
-	"github.com/labstack/gommon/log"
-	"go.uber.org/zap"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/labstack/gommon/log"
+	"go.uber.org/zap"
 
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/handlers"

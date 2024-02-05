@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"github.com/msmkdenis/yap-shortener/internal/dto"
 	"log"
 	"net/http"
 	"net/http/httptest"
@@ -14,6 +13,7 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/msmkdenis/yap-shortener/internal/config"
+	"github.com/msmkdenis/yap-shortener/internal/dto"
 	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 	"github.com/msmkdenis/yap-shortener/internal/service"
 	"github.com/msmkdenis/yap-shortener/pkg/auth"

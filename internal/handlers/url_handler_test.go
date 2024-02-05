@@ -3,11 +3,12 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
-	"github.com/msmkdenis/yap-shortener/internal/dto"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
+
+	"github.com/msmkdenis/yap-shortener/internal/dto"
 
 	"github.com/golang/mock/gomock"
 	"github.com/labstack/echo/v4"

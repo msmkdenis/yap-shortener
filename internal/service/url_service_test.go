@@ -4,10 +4,11 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/msmkdenis/yap-shortener/internal/dto"
 	"math/rand"
 	"testing"
 	"time"
+
+	"github.com/msmkdenis/yap-shortener/internal/dto"
 
 	"github.com/golang/mock/gomock"
 	"github.com/google/uuid"

@@ -4,8 +4,9 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"github.com/msmkdenis/yap-shortener/pkg/apperr"
 	"time"
+
+	"github.com/msmkdenis/yap-shortener/pkg/apperr"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"

@@ -4,7 +4,6 @@ package db
 import (
 	"embed"
 	"fmt"
-
 	"strings"
 
 	"github.com/golang-migrate/migrate/v4"
