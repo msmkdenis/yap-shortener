@@ -9,7 +9,7 @@ import (
 func GetStyleCheckAnalyzers() []*analysis.Analyzer {
 	var response []*analysis.Analyzer
 
-	var exclude = map[string]bool{
+	exclude := map[string]bool{
 		"ST1000": true,
 		"ST1020": true,
 	}
