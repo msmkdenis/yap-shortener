@@ -1,3 +1,7 @@
+coverage:
+  status:
+    patch: off
+
 comment:                  # this is a top-level key
   layout: " diff, flags, files"
   behavior: default

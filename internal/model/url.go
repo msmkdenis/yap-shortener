@@ -1,5 +1,7 @@
+// Package model contains the model for the application.
 package model
 
+// URL represents the URL model.
 type URL struct {
 	ID            string `db:"id"`
 	Original      string `db:"original_url"`

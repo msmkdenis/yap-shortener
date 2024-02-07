@@ -6,15 +6,17 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 
-	"github.com/msmkdenis/yap-shortener/internal/utils"
+	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
 
+// JWTAuth represents JWT authentication middleware.
 type JWTAuth struct {
-	jwtManager *utils.JWTManager
+	jwtManager *jwtgen.JWTManager
 	logger     *zap.Logger
 }
 
-func InitJWTAuth(jwtManager *utils.JWTManager, logger *zap.Logger) *JWTAuth {
+// InitJWTAuth returns a new instance of JWTAuth.
+func InitJWTAuth(jwtManager *jwtgen.JWTManager, logger *zap.Logger) *JWTAuth {
 	j := &JWTAuth{
 		jwtManager: jwtManager,
 		logger:     logger,
@@ -22,6 +24,7 @@ func InitJWTAuth(jwtManager *utils.JWTManager, logger *zap.Logger) *JWTAuth {
 	return j
 }
 
+// JWTAuth checks token and sets userID in the context. otherwise returns 401.
 func (j *JWTAuth) JWTAuth() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

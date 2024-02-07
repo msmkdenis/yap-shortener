@@ -8,23 +8,24 @@ import (
 	"go.uber.org/zap"
 )
 
+// RequestLogger represents request logger middleware.
 type (
 	RequestLogger struct {
 		ReqLogger *zap.Logger
 	}
-	// берём структуру для хранения сведений об ответе
+
 	responseData struct {
 		status int
 		size   int
 	}
 
-	// добавляем реализацию http.ResponseWriter
 	loggingResponseWriter struct {
-		http.ResponseWriter // встраиваем оригинальный http.ResponseWriter
-		responseData        *responseData
+		http.ResponseWriter
+		responseData *responseData
 	}
 )
 
+// InitRequestLogger returns a new instance of RequestLogger.
 func InitRequestLogger(logger *zap.Logger) *RequestLogger {
 	l := &RequestLogger{
 		ReqLogger: logger,
@@ -32,19 +33,20 @@ func InitRequestLogger(logger *zap.Logger) *RequestLogger {
 	return l
 }
 
+// Write implements the http.ResponseWriter interface.
 func (r *loggingResponseWriter) Write(b []byte) (int, error) {
-	// записываем ответ, используя оригинальный http.ResponseWriter
 	size, err := r.ResponseWriter.Write(b)
-	r.responseData.size += size // захватываем размер
+	r.responseData.size += size
 	return size, err
 }
 
+// WriteHeader implements the http.ResponseWriter interface.
 func (r *loggingResponseWriter) WriteHeader(statusCode int) {
-	// записываем код статуса, используя оригинальный http.ResponseWriter
 	r.ResponseWriter.WriteHeader(statusCode)
-	r.responseData.status = statusCode // захватываем код статуса
+	r.responseData.status = statusCode
 }
 
+// RequestLogger logs each HTTP request.
 func (r *RequestLogger) RequestLogger() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -59,7 +61,7 @@ func (r *RequestLogger) RequestLogger() echo.MiddlewareFunc {
 			responseData := &responseData{}
 
 			lw := loggingResponseWriter{
-				ResponseWriter: c.Response().Writer, // встраиваем оригинальный http.ResponseWriter
+				ResponseWriter: c.Response().Writer,
 				responseData:   responseData,
 			}
 

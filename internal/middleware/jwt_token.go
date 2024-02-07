@@ -6,15 +6,17 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 
-	"github.com/msmkdenis/yap-shortener/internal/utils"
+	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
 
+// JWTCheckerCreator represents JWT checker creator middleware.
 type JWTCheckerCreator struct {
-	jwtManager *utils.JWTManager
+	jwtManager *jwtgen.JWTManager
 	logger     *zap.Logger
 }
 
-func InitJWTCheckerCreator(jwtManager *utils.JWTManager, logger *zap.Logger) *JWTCheckerCreator {
+// InitJWTCheckerCreator returns a new instance of JWTCheckerCreator.
+func InitJWTCheckerCreator(jwtManager *jwtgen.JWTManager, logger *zap.Logger) *JWTCheckerCreator {
 	j := &JWTCheckerCreator{
 		jwtManager: jwtManager,
 		logger:     logger,
@@ -22,6 +24,8 @@ func InitJWTCheckerCreator(jwtManager *utils.JWTManager, logger *zap.Logger) *JW
 	return j
 }
 
+// JWTCheckOrCreate checks token and sets userID in the context.
+// Otherwise creates new token and sets it in the context.
 func (j *JWTCheckerCreator) JWTCheckOrCreate() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

@@ -1,3 +1,4 @@
+// Package file contains the file repository implementation.
 package file
 
 import (
@@ -12,21 +13,25 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/model"
-	"github.com/msmkdenis/yap-shortener/internal/utils"
+	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
+	"github.com/msmkdenis/yap-shortener/pkg/apperr"
 )
 
 const (
 	perm = 0o755
 )
 
+// FileURLRepository represents a file-based implementation of the URLRepository interface.
 type URLRepository struct {
 	mu          sync.RWMutex
 	fileStorage *os.File
 	logger      *zap.Logger
 }
 
+// NewFileURLRepository creates a new URLRepository from the given path and logger.
+// Tries to create the directory if it doesn't exist.
+// Tries to create the file if it doesn't exist.
 func NewFileURLRepository(path string, logger *zap.Logger) (*URLRepository, error) {
 	path = filepath.FromSlash(path)
 
@@ -36,7 +41,7 @@ func NewFileURLRepository(path string, logger *zap.Logger) (*URLRepository, erro
 		logger.Info(fmt.Sprintf("Creating directory: %s", dir))
 		err = os.Mkdir(dir, perm)
 		if err != nil {
-			return nil, apperrors.NewValueError(fmt.Sprintf("Unable to create directory: %s", dir), utils.Caller(), err)
+			return nil, apperr.NewValueError(fmt.Sprintf("Unable to create directory: %s", dir), apperr.Caller(), err)
 		}
 		logger.Info(fmt.Sprintf("Directory %s was created", dir))
 	}
@@ -44,7 +49,7 @@ func NewFileURLRepository(path string, logger *zap.Logger) (*URLRepository, erro
 	logger.Info(fmt.Sprintf("Creating file: %s", path))
 	file, err := os.OpenFile(path, os.O_CREATE, perm)
 	if err != nil {
-		return nil, apperrors.NewValueError(fmt.Sprintf("Unable to create file: %s", path), utils.Caller(), err)
+		return nil, apperr.NewValueError(fmt.Sprintf("Unable to create file: %s", path), apperr.Caller(), err)
 	}
 	logger.Info(fmt.Sprintf("FileStorage %s was created", file.Name()))
 	defer file.Close()
@@ -56,6 +61,7 @@ func NewFileURLRepository(path string, logger *zap.Logger) (*URLRepository, erro
 	}, nil
 }
 
+// DeleteURLByUserID deletes a URL by user ID from the file
 func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, shortURL string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -63,7 +69,7 @@ func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, sh
 	r.logger.Info(fmt.Sprintf("Opening file: %s", r.fileStorage.Name()))
 	file, openFileErr := os.OpenFile(r.fileStorage.Name(), os.O_RDWR|os.O_APPEND, perm)
 	if openFileErr != nil {
-		return apperrors.NewValueError("unable to open file", utils.Caller(), openFileErr)
+		return apperr.NewValueError("unable to open file", apperr.Caller(), openFileErr)
 	}
 	defer file.Close()
 
@@ -77,7 +83,7 @@ func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, sh
 			break
 		}
 		if err != nil {
-			return apperrors.NewValueError("unable to decode from file", utils.Caller(), err)
+			return apperr.NewValueError("unable to decode from file", apperr.Caller(), err)
 		}
 		if existingURL.UserID == userID && existingURL.ID == shortURL {
 			existingURL.DeletedFlag = true
@@ -88,7 +94,7 @@ func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, sh
 
 	// Clear file in order to prepare for further encoding
 	if err := os.Truncate(r.fileStorage.Name(), 0); err != nil {
-		return apperrors.NewValueError(fmt.Sprintf("Failed to truncate file: %s", r.fileStorage.Name()), utils.Caller(), err)
+		return apperr.NewValueError(fmt.Sprintf("Failed to truncate file: %s", r.fileStorage.Name()), apperr.Caller(), err)
 	}
 
 	// Encode urlsToSave to file
@@ -96,20 +102,21 @@ func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, sh
 	for _, url := range urlsToSave {
 		err := encoder.Encode(url)
 		if err != nil {
-			return apperrors.NewValueError("unable to encode to file", utils.Caller(), err)
+			return apperr.NewValueError("unable to encode to file", apperr.Caller(), err)
 		}
 	}
 
 	return nil
 }
 
+// SelectAllByUserID retrieves all URLs by user ID from file
 func (r *URLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	file, err := os.OpenFile(r.fileStorage.Name(), os.O_RDONLY, perm)
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to open file", utils.Caller(), err)
+		return nil, apperr.NewValueError("unable to open file", apperr.Caller(), err)
 	}
 
 	decoder := json.NewDecoder(file)
@@ -125,7 +132,7 @@ func (r *URLRepository) SelectAllByUserID(ctx context.Context, userID string) ([
 			break
 		}
 		if err != nil {
-			return nil, apperrors.NewValueError("unable to decode from file", utils.Caller(), err)
+			return nil, apperr.NewValueError("unable to decode from file", apperr.Caller(), err)
 		}
 		if url.UserID == userID {
 			urls = append(urls, url)
@@ -133,12 +140,13 @@ func (r *URLRepository) SelectAllByUserID(ctx context.Context, userID string) ([
 	}
 
 	if len(urls) == 0 {
-		return nil, apperrors.NewValueError(fmt.Sprintf("urls not found by user %s", userID), utils.Caller(), apperrors.ErrURLNotFound)
+		return nil, apperr.NewValueError(fmt.Sprintf("urls not found by user %s", userID), apperr.Caller(), urlErr.ErrURLNotFound)
 	}
 
 	return urls, nil
 }
 
+// Insert inserts URL to file
 func (r *URLRepository) Insert(ctx context.Context, url model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -146,26 +154,27 @@ func (r *URLRepository) Insert(ctx context.Context, url model.URL) (*model.URL, 
 	r.logger.Info(fmt.Sprintf("Opening file: %s", r.fileStorage.Name()))
 	file, err := os.OpenFile(r.fileStorage.Name(), os.O_RDWR|os.O_APPEND, perm)
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to open file", utils.Caller(), err)
+		return nil, apperr.NewValueError("unable to open file", apperr.Caller(), err)
 	}
 	defer file.Close()
 
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(url)
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to encode to file", utils.Caller(), err)
+		return nil, apperr.NewValueError("unable to encode to file", apperr.Caller(), err)
 	}
 
 	return &url, nil
 }
 
+// SelectByID retrieves URL from file by ID
 func (r *URLRepository) SelectByID(ctx context.Context, key string) (*model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	file, err := os.OpenFile(r.fileStorage.Name(), os.O_RDONLY, perm)
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to open file", utils.Caller(), err)
+		return nil, apperr.NewValueError("unable to open file", apperr.Caller(), err)
 	}
 
 	decoder := json.NewDecoder(file)
@@ -175,10 +184,10 @@ func (r *URLRepository) SelectByID(ctx context.Context, key string) (*model.URL,
 	for {
 		err := decoder.Decode(&url)
 		if errors.Is(err, io.EOF) {
-			return nil, apperrors.NewValueError(fmt.Sprintf("Url with id %s not found", key), utils.Caller(), apperrors.ErrURLNotFound)
+			return nil, apperr.NewValueError(fmt.Sprintf("Url with id %s not found", key), apperr.Caller(), urlErr.ErrURLNotFound)
 		}
 		if err != nil {
-			return nil, apperrors.NewValueError("unable to decode from file", utils.Caller(), err)
+			return nil, apperr.NewValueError("unable to decode from file", apperr.Caller(), err)
 		}
 		if url.ID == key {
 			break
@@ -188,13 +197,14 @@ func (r *URLRepository) SelectByID(ctx context.Context, key string) (*model.URL,
 	return &url, nil
 }
 
+// SelectAll retrieves all URLs from file
 func (r *URLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	file, err := os.OpenFile(r.fileStorage.Name(), os.O_RDONLY, perm)
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to open file", utils.Caller(), err)
+		return nil, apperr.NewValueError("unable to open file", apperr.Caller(), err)
 	}
 	defer file.Close()
 
@@ -209,7 +219,7 @@ func (r *URLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 			break
 		}
 		if err != nil {
-			return nil, apperrors.NewValueError("unable to decode from file", utils.Caller(), err)
+			return nil, apperr.NewValueError("unable to decode from file", apperr.Caller(), err)
 		}
 		urls = append(urls, url)
 	}
@@ -217,25 +227,28 @@ func (r *URLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 	return urls, nil
 }
 
+// DeleteAll deletes all URLs from file
 func (r *URLRepository) DeleteAll(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
 	if err := os.Truncate(r.fileStorage.Name(), 0); err != nil {
-		return apperrors.NewValueError(fmt.Sprintf("Failed to truncate file: %s", r.fileStorage.Name()), utils.Caller(), err)
+		return apperr.NewValueError(fmt.Sprintf("Failed to truncate file: %s", r.fileStorage.Name()), apperr.Caller(), err)
 	}
 	return nil
 }
 
+// Ping pings the file storage
 func (r *URLRepository) Ping(ctx context.Context) error {
 	file, err := os.OpenFile(r.fileStorage.Name(), os.O_RDONLY, perm)
 	if err != nil {
-		return apperrors.NewValueError("unable to open file", utils.Caller(), err)
+		return apperr.NewValueError("unable to open file", apperr.Caller(), err)
 	}
 	defer file.Close()
 	return nil
 }
 
+// InsertAllOrUpdate upserts all URLs to file
 func (r *URLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL) ([]model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -243,7 +256,7 @@ func (r *URLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL)
 	r.logger.Info(fmt.Sprintf("Opening file: %s", r.fileStorage.Name()))
 	file, openFileErr := os.OpenFile(r.fileStorage.Name(), os.O_RDWR|os.O_APPEND, perm)
 	if openFileErr != nil {
-		return nil, apperrors.NewValueError("unable to open file", utils.Caller(), openFileErr)
+		return nil, apperr.NewValueError("unable to open file", apperr.Caller(), openFileErr)
 	}
 	defer file.Close()
 
@@ -263,7 +276,7 @@ func (r *URLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL)
 			break
 		}
 		if err != nil {
-			return nil, apperrors.NewValueError("unable to decode from file", utils.Caller(), err)
+			return nil, apperr.NewValueError("unable to decode from file", apperr.Caller(), err)
 		}
 		if v, ok := urlMap[existingURL.ID]; ok { // If url exists in map, remove it from map and add it to urlsToSave
 			existingURL.Original = v.Original
@@ -276,7 +289,7 @@ func (r *URLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL)
 
 	// Clear file in order to prepare for further encoding
 	if err := os.Truncate(r.fileStorage.Name(), 0); err != nil {
-		return nil, apperrors.NewValueError(fmt.Sprintf("Failed to truncate file: %s", r.fileStorage.Name()), utils.Caller(), err)
+		return nil, apperr.NewValueError(fmt.Sprintf("Failed to truncate file: %s", r.fileStorage.Name()), apperr.Caller(), err)
 	}
 
 	for _, v := range urlMap {
@@ -288,7 +301,7 @@ func (r *URLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL)
 	for _, url := range urlsToSave {
 		err := encoder.Encode(url)
 		if err != nil {
-			return nil, apperrors.NewValueError("unable to encode to file", utils.Caller(), err)
+			return nil, apperr.NewValueError("unable to encode to file", apperr.Caller(), err)
 		}
 	}
 

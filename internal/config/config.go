@@ -1,3 +1,4 @@
+// Package config contains the configuration for the application.
 package config
 
 import (
@@ -5,14 +6,17 @@ import (
 	"os"
 )
 
+// Repository represents the type of the repository.
 type Repository uint
 
+// RepositoryType represents the type of the repository.
 const (
 	DataBaseRepository Repository = iota + 1
 	FileRepository
 	MemoryRepostiory
 )
 
+// Config represents the configuration for the application.
 type Config struct {
 	URLServer       string
 	URLPrefix       string
@@ -23,6 +27,10 @@ type Config struct {
 	TokenName       string
 }
 
+// NewConfig creates a new Config instance with default values and returns a pointer to it.
+//
+// No parameters.
+// Returns a pointer to a Config instance.
 func NewConfig() *Config {
 	config := Config{
 		URLServer: "8080",
@@ -36,6 +44,7 @@ func NewConfig() *Config {
 	return &config
 }
 
+// user=postgres password=postgres host=localhost database=yap-shortener sslmode=disable
 func (c *Config) parseFlags() {
 	var URLServer string
 	flag.StringVar(&URLServer, "a", ":8080", "Enter URLServer as ip_address:port Or use SERVER_ADDRESS env")

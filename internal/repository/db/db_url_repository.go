@@ -11,9 +11,9 @@ import (
 	"github.com/jackc/pgx/v5"
 	"go.uber.org/zap"
 
-	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/model"
-	"github.com/msmkdenis/yap-shortener/internal/utils"
+	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
+	"github.com/msmkdenis/yap-shortener/pkg/apperr"
 )
 
 //go:embed queries/insert_url_and_return.sql
@@ -43,11 +43,15 @@ var createTmpTableLikeURL string
 //go:embed queries/upsert_and_return_urls_from_tmp_table.sql
 var upsertAndReturnURLsFromTmpTable string
 
+// PostgresURLRepository represents a PostgreSQL implementation of the URLRepository interface.
 type PostgresURLRepository struct {
 	PostgresPool *PostgresPool
 	logger       *zap.Logger
 }
 
+// NewPostgresURLRepository returns a new instance of PostgresURLRepository.
+//
+// It takes a PostgresPool pointer and a zap.Logger pointer as parameters and returns a PostgresURLRepository pointer.
 func NewPostgresURLRepository(postgresPool *PostgresPool, logger *zap.Logger) *PostgresURLRepository {
 	return &PostgresURLRepository{
 		PostgresPool: postgresPool,
@@ -55,26 +59,30 @@ func NewPostgresURLRepository(postgresPool *PostgresPool, logger *zap.Logger) *P
 	}
 }
 
+// Ping pings the PostgresURLRepository.
 func (r *PostgresURLRepository) Ping(ctx context.Context) error {
 	return r.PostgresPool.db.Ping(ctx)
 }
 
+// DeleteURLByUserID deletes from PostgreSQL DB URLs by user ID.
+//
+// Performed via select for update block within batched transaction
 func (r *PostgresURLRepository) DeleteURLByUserID(ctx context.Context, userID string, shortURLs string) error {
 	r.logger.Info("DeleteURLByUserID", zap.String("userID", userID), zap.String("shortURLs", shortURLs))
 	tx, err := r.PostgresPool.db.BeginTx(ctx, pgx.TxOptions{IsoLevel: pgx.RepeatableRead})
 	if err != nil {
-		return apperrors.NewValueError("unable to start transaction", utils.Caller(), err)
+		return apperr.NewValueError("unable to start transaction", apperr.Caller(), err)
 	}
 	defer tx.Rollback(ctx)
 
 	block, err := tx.Prepare(ctx, "block", blockURLsByUserIDAndURLsIDs)
 	if err != nil {
-		return apperrors.NewValueError("unable to prepare query", utils.Caller(), err)
+		return apperr.NewValueError("unable to prepare query", apperr.Caller(), err)
 	}
 
 	update, err := tx.Prepare(ctx, "update", setDeletedByUserIDandURLsIDs)
 	if err != nil {
-		return apperrors.NewValueError("unable to prepare query", utils.Caller(), err)
+		return apperr.NewValueError("unable to prepare query", apperr.Caller(), err)
 	}
 
 	batch := &pgx.Batch{}
@@ -84,57 +92,60 @@ func (r *PostgresURLRepository) DeleteURLByUserID(ctx context.Context, userID st
 
 	err = result.Close()
 	if err != nil {
-		return apperrors.NewValueError("close failed", utils.Caller(), err)
+		return apperr.NewValueError("close failed", apperr.Caller(), err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return apperrors.NewValueError("commit failed", utils.Caller(), err)
+		return apperr.NewValueError("commit failed", apperr.Caller(), err)
 	}
 
 	return nil
 }
 
+// SelectAllByUserID retrieves from PostgreSQL DB URLs by user ID.
 func (r *PostgresURLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {
 	queryRows, err := r.PostgresPool.db.Query(ctx, selectAllURLsByUserID, userID)
 	if err != nil {
-		return nil, apperrors.NewValueError("query failed", utils.Caller(), err)
+		return nil, apperr.NewValueError("query failed", apperr.Caller(), err)
 	}
 	defer queryRows.Close()
 
 	urls, err := pgx.CollectRows(queryRows, pgx.RowToStructByPos[model.URL])
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to collect rows", utils.Caller(), err)
+		return nil, apperr.NewValueError("unable to collect rows", apperr.Caller(), err)
 	}
 
 	if len(urls) == 0 {
-		return nil, apperrors.NewValueError(fmt.Sprintf("urls not found by user %s", userID), utils.Caller(), apperrors.ErrURLNotFound)
+		return nil, apperr.NewValueError(fmt.Sprintf("urls not found by user %s", userID), apperr.Caller(), urlErr.ErrURLNotFound)
 	}
 
 	return urls, nil
 }
 
+// Insert inserts to PostgreSQL DB URL.
 func (r *PostgresURLRepository) Insert(ctx context.Context, url model.URL) (*model.URL, error) {
 	var savedURL model.URL
 	err := r.PostgresPool.db.QueryRow(ctx, insertURLAndReturn,
 		url.ID, url.Original, url.Shortened, url.UserID, url.DeletedFlag).
 		Scan(&savedURL.ID, &savedURL.Original, &savedURL.Shortened, &savedURL.UserID, &savedURL.DeletedFlag)
 	if err != nil {
-		return nil, apperrors.NewValueError("query failed", utils.Caller(), err)
+		return nil, apperr.NewValueError("query failed", apperr.Caller(), err)
 	}
 
 	return &savedURL, nil
 }
 
+// SelectByID retrieves URL from PostgreSQL DB by ID.
 func (r *PostgresURLRepository) SelectByID(ctx context.Context, key string) (*model.URL, error) {
 	var url model.URL
 	err := r.PostgresPool.db.QueryRow(ctx, selectURLByID, key).
 		Scan(&url.ID, &url.Original, &url.Shortened, &url.CorrelationID, &url.UserID, &url.DeletedFlag)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			err = apperrors.NewValueError("url not found", utils.Caller(), apperrors.ErrURLNotFound)
+			err = apperr.NewValueError("url not found", apperr.Caller(), urlErr.ErrURLNotFound)
 		} else {
-			err = apperrors.NewValueError("query failed", utils.Caller(), err)
+			err = apperr.NewValueError("query failed", apperr.Caller(), err)
 		}
 		return nil, err
 	}
@@ -142,34 +153,39 @@ func (r *PostgresURLRepository) SelectByID(ctx context.Context, key string) (*mo
 	return &url, nil
 }
 
+// SelectAll retrieves all URL from PostgreSQL DB.
 func (r *PostgresURLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 	queryRows, err := r.PostgresPool.db.Query(ctx, selectAllURLs)
 	if err != nil {
-		return nil, apperrors.NewValueError("query failed", utils.Caller(), err)
+		return nil, apperr.NewValueError("query failed", apperr.Caller(), err)
 	}
 	defer queryRows.Close()
 
 	urls, err := pgx.CollectRows(queryRows, pgx.RowToStructByPos[model.URL])
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to collect rows", utils.Caller(), err)
+		return nil, apperr.NewValueError("unable to collect rows", apperr.Caller(), err)
 	}
 
 	return urls, nil
 }
 
+// DeleteAll deletes all URL from PostgreSQL DB.
 func (r *PostgresURLRepository) DeleteAll(ctx context.Context) error {
 	_, err := r.PostgresPool.db.Exec(ctx, deleteAllURLs)
 	if err != nil {
-		return apperrors.NewValueError("query failed", utils.Caller(), err)
+		return apperr.NewValueError("query failed", apperr.Caller(), err)
 	}
 
 	return nil
 }
 
+// InsertAllOrUpdate upserts URLs to PostgreSQL DB.
+//
+// performed in a single transaction with copy protocol and temp table
 func (r *PostgresURLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL) ([]model.URL, error) {
 	tx, err := r.PostgresPool.db.Begin(ctx)
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to start transaction", utils.Caller(), err)
+		return nil, apperr.NewValueError("unable to start transaction", apperr.Caller(), err)
 	}
 	defer tx.Rollback(ctx)
 
@@ -186,7 +202,7 @@ func (r *PostgresURLRepository) InsertAllOrUpdate(ctx context.Context, urls []mo
 	createTmpTableQuery := fmt.Sprintf(createTmpTableLikeURL, tempTable)
 	_, err = tx.Exec(ctx, createTmpTableQuery)
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to create temp table", utils.Caller(), err)
+		return nil, apperr.NewValueError("unable to create temp table", apperr.Caller(), err)
 	}
 
 	count, err := tx.CopyFrom(
@@ -196,27 +212,27 @@ func (r *PostgresURLRepository) InsertAllOrUpdate(ctx context.Context, urls []mo
 		pgx.CopyFromRows(rows),
 	)
 	if err != nil {
-		return nil, apperrors.NewValueError("copy from failed", utils.Caller(), err)
+		return nil, apperr.NewValueError("copy from failed", apperr.Caller(), err)
 	}
 	if count != int64(len(urls)) {
-		return nil, apperrors.NewValueError("not all rows were inserted", utils.Caller(), err)
+		return nil, apperr.NewValueError("not all rows were inserted", apperr.Caller(), err)
 	}
 
 	upsertFromTmpTableQuery := fmt.Sprintf(upsertAndReturnURLsFromTmpTable, tempTable)
 	queryRows, err := tx.Query(ctx, upsertFromTmpTableQuery)
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to upsert batch", utils.Caller(), err)
+		return nil, apperr.NewValueError("unable to upsert batch", apperr.Caller(), err)
 	}
 	defer queryRows.Close()
 
 	savedURLs, err := pgx.CollectRows(queryRows, pgx.RowToStructByPos[model.URL])
 	if err != nil {
-		return nil, apperrors.NewValueError("unable to collect rows", utils.Caller(), err)
+		return nil, apperr.NewValueError("unable to collect rows", apperr.Caller(), err)
 	}
 
 	err = tx.Commit(ctx)
 	if err != nil {
-		return nil, apperrors.NewValueError("commit failed", utils.Caller(), err)
+		return nil, apperr.NewValueError("commit failed", apperr.Caller(), err)
 	}
 
 	return savedURLs, nil

@@ -1,3 +1,4 @@
+// Package memory provides in-memory implementation of URLRepository.
 package memory
 
 import (
@@ -7,17 +8,19 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/msmkdenis/yap-shortener/internal/apperrors"
 	"github.com/msmkdenis/yap-shortener/internal/model"
-	"github.com/msmkdenis/yap-shortener/internal/utils"
+	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
+	"github.com/msmkdenis/yap-shortener/pkg/apperr"
 )
 
+// URLRepository represents in-memory implementation of URLRepository.
 type URLRepository struct {
 	mu      sync.RWMutex
 	storage map[string]model.URL
 	logger  *zap.Logger
 }
 
+// NewURLRepository creates a new URLRepository (hash-map)
 func NewURLRepository(logger *zap.Logger) *URLRepository {
 	return &URLRepository{
 		storage: make(map[string]model.URL),
@@ -26,6 +29,7 @@ func NewURLRepository(logger *zap.Logger) *URLRepository {
 	}
 }
 
+// DeleteURLByUserID deletes URL by user ID from in-memory storage.
 func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, shortURL string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -40,6 +44,7 @@ func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, sh
 	return nil
 }
 
+// SelectAllByUserID returns all URLs by user ID from in-memory storage.
 func (r *URLRepository) SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -52,12 +57,13 @@ func (r *URLRepository) SelectAllByUserID(ctx context.Context, userID string) ([
 	}
 
 	if len(urls) == 0 {
-		return nil, apperrors.NewValueError(fmt.Sprintf("urls not found by user %s", userID), utils.Caller(), apperrors.ErrURLNotFound)
+		return nil, apperr.NewValueError(fmt.Sprintf("urls not found by user %s", userID), apperr.Caller(), urlErr.ErrURLNotFound)
 	}
 
 	return urls, nil
 }
 
+// Insert inserts URL into in-memory storage
 func (r *URLRepository) Insert(ctx context.Context, u model.URL) (*model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -68,18 +74,20 @@ func (r *URLRepository) Insert(ctx context.Context, u model.URL) (*model.URL, er
 	return &url, nil
 }
 
+// SelectByID returns URL by ID from in-memory storage
 func (r *URLRepository) SelectByID(ctx context.Context, key string) (*model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
 	url, ok := r.storage[key]
 	if !ok {
-		return &url, apperrors.ErrURLNotFound
+		return &url, urlErr.ErrURLNotFound
 	}
 
 	return &url, nil
 }
 
+// SelectAll returns all URLs from in-memory storage
 func (r *URLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
@@ -92,6 +100,7 @@ func (r *URLRepository) SelectAll(ctx context.Context) ([]model.URL, error) {
 	return values, nil
 }
 
+// DeleteAll deletes all URLs from in-memory storage
 func (r *URLRepository) DeleteAll(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -100,14 +109,16 @@ func (r *URLRepository) DeleteAll(ctx context.Context) error {
 	return nil
 }
 
+// Ping pings the storage
 func (r *URLRepository) Ping(ctx context.Context) error {
 	if r.storage == nil {
-		return apperrors.NewValueError("storage is not initialized", utils.Caller(), apperrors.ErrURLNotFound)
+		return apperr.NewValueError("storage is not initialized", apperr.Caller(), urlErr.ErrURLNotFound)
 	}
 
 	return nil
 }
 
+// InsertAllOrUpdate upserts all URLs into in-memory storage
 func (r *URLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL) ([]model.URL, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()

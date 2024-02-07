@@ -1,4 +1,5 @@
-package app
+// Package shortener implements the URL shortener service.
+package shortener
 
 import (
 	"context"
@@ -19,20 +20,25 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/repository/file"
 	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 	"github.com/msmkdenis/yap-shortener/internal/service"
-	"github.com/msmkdenis/yap-shortener/internal/utils"
+	"github.com/msmkdenis/yap-shortener/pkg/echopprof"
+	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
 
+// URLShortenerRun runs the URL shortener service. Graceful shutdown is implemented.
+//
+// It does not take any parameters and does not return any values.
 func URLShortenerRun() {
 	cfg := *config.NewConfig()
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
-	jwtManager := utils.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
 	repository := initRepository(&cfg, logger)
 	urlService := service.NewURLService(repository, logger)
 
 	e := echo.New()
+	echopprof.Wrap(e)
 	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger)
 
 	serverCtx, serverStopCtx := context.WithCancel(context.Background())
