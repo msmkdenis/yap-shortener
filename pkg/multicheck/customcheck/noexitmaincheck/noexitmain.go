@@ -1,4 +1,6 @@
-package linter
+// Package noexitmaincheck is a custom analyzer that checks
+// for a direct os.Exit call in the main function.
+package noexitmaincheck
 
 import (
 	"go/ast"

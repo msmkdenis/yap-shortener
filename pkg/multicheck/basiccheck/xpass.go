@@ -1,4 +1,44 @@
-package linter
+// Package basicchecks defines a list of standard static analyzers.
+// Includes the following list of checks:
+//
+// Includes the following list of checks:
+// `asmdecl` checks for mismatches between assembly files and Go declarations.
+// `assign` checks for useless assignments.
+// `atomic` checks for common mistakes using the sync/atomic package.
+// `atomicalign` checks for non-64-bit-aligned arguments to sync/atomic functions.
+// `bools` checks for common mistakes involving boolean expressions.
+// `cgocall` checks for calls to C code.
+// `composites` checks for composite literals that can be simplified.
+// `composite` checks for unkeyed composite literals.
+// `copylocks` checks for locks erroneously passed by value.
+// `deepequalerrors` checks for the use of reflect.DeepEqual with error values.
+// `defers` checks for common mistakes in defer statements.
+// `directive` checks known Go toolchain directives.
+// `errorsas` checks that the second argument to errors.As is a pointer to a type implementing error.
+// `httpresponse` checks for mistakes using HTTP responses.
+// `ifaceassert` detect impossible interface-to-interface type assertions
+// `loopclosure` checks for references to enclosing loop variables from within nested functions.
+// `lostcancel` check cancel func returned by context.WithCancel is called
+// `nilfunc` checks for useless comparisons between functions and nil.
+// `nilness` check for redundant or impossible nil comparisons
+// `printf` check consistency of Printf format strings and arguments
+// `reflectvaluecompare` check for comparing reflect.Value values with == or reflect.DeepEqual
+// `shadow` checks for shadowed variables.
+// `sigchanyzer` check for unbuffered channel of os.Signal
+// `slog` check for invalid structured logging calls
+// `sortslice` checks for calls to sort.Slice that do not use a slice type as first argument.
+// `stdmethods` check signature of methods of well-known interfaces
+// `stringintconv` check for string(int) conversions
+// `structtag` checks struct field tags are well formed.
+// `testinggoroutine` report calls to (*testing.T).Fatal from goroutines started by a test.
+// `tests` checks for common mistaken usages of tests and examples.
+// `timeformat` check for calls of (time.Time).Format or time.Parse with 2006-02-01
+// `unmarshal` checks for passing non-pointer or non-interface types to unmarshal and decode functions.
+// `unreachable` checks for unreachable code.
+// `unsafeptr` check for invalid conversions of uintptr to unsafe.Pointer
+// `unusedresult` checks for unused results of calls to certain pure functions.
+// `unusedwrite` checks for unused writes
+package basiccheck
 
 import (
 	"golang.org/x/tools/go/analysis"
@@ -7,29 +47,21 @@ import (
 	"golang.org/x/tools/go/analysis/passes/atomic"
 	"golang.org/x/tools/go/analysis/passes/atomicalign"
 	"golang.org/x/tools/go/analysis/passes/bools"
-	"golang.org/x/tools/go/analysis/passes/buildssa"
-	"golang.org/x/tools/go/analysis/passes/buildtag"
 	"golang.org/x/tools/go/analysis/passes/cgocall"
 	"golang.org/x/tools/go/analysis/passes/composite"
 	"golang.org/x/tools/go/analysis/passes/copylock"
-	"golang.org/x/tools/go/analysis/passes/ctrlflow"
 	"golang.org/x/tools/go/analysis/passes/deepequalerrors"
 	"golang.org/x/tools/go/analysis/passes/defers"
 	"golang.org/x/tools/go/analysis/passes/directive"
 	"golang.org/x/tools/go/analysis/passes/errorsas"
-	"golang.org/x/tools/go/analysis/passes/findcall"
-	"golang.org/x/tools/go/analysis/passes/framepointer"
 	"golang.org/x/tools/go/analysis/passes/httpresponse"
 	"golang.org/x/tools/go/analysis/passes/ifaceassert"
-	"golang.org/x/tools/go/analysis/passes/inspect"
 	"golang.org/x/tools/go/analysis/passes/loopclosure"
 	"golang.org/x/tools/go/analysis/passes/lostcancel"
 	"golang.org/x/tools/go/analysis/passes/nilfunc"
-	"golang.org/x/tools/go/analysis/passes/pkgfact"
 	"golang.org/x/tools/go/analysis/passes/printf"
 	"golang.org/x/tools/go/analysis/passes/reflectvaluecompare"
 	"golang.org/x/tools/go/analysis/passes/shadow"
-	"golang.org/x/tools/go/analysis/passes/shift"
 	"golang.org/x/tools/go/analysis/passes/sigchanyzer"
 	"golang.org/x/tools/go/analysis/passes/slog"
 	"golang.org/x/tools/go/analysis/passes/sortslice"
@@ -44,7 +76,6 @@ import (
 	"golang.org/x/tools/go/analysis/passes/unsafeptr"
 	"golang.org/x/tools/go/analysis/passes/unusedresult"
 	"golang.org/x/tools/go/analysis/passes/unusedwrite"
-	"golang.org/x/tools/go/analysis/passes/usesgenerics"
 	"honnef.co/go/tools/analysis/facts/nilness"
 )
 
@@ -56,30 +87,22 @@ func GetXPassesAnalyzers() []*analysis.Analyzer {
 		atomic.Analyzer,
 		atomicalign.Analyzer,
 		bools.Analyzer,
-		buildssa.Analyzer,
-		buildtag.Analyzer,
 		cgocall.Analyzer,
 		composite.Analyzer,
 		copylock.Analyzer,
-		ctrlflow.Analyzer,
 		deepequalerrors.Analyzer,
 		defers.Analyzer,
 		directive.Analyzer,
 		errorsas.Analyzer,
-		findcall.Analyzer,
-		framepointer.Analyzer,
 		httpresponse.Analyzer,
 		ifaceassert.Analyzer,
-		inspect.Analyzer,
 		loopclosure.Analyzer,
 		lostcancel.Analyzer,
 		nilfunc.Analyzer,
 		nilness.Analysis,
-		pkgfact.Analyzer,
 		printf.Analyzer,
 		reflectvaluecompare.Analyzer,
 		shadow.Analyzer,
-		shift.Analyzer,
 		sigchanyzer.Analyzer,
 		slog.Analyzer,
 		sortslice.Analyzer,
@@ -94,6 +117,5 @@ func GetXPassesAnalyzers() []*analysis.Analyzer {
 		unsafeptr.Analyzer,
 		unusedresult.Analyzer,
 		unusedwrite.Analyzer,
-		usesgenerics.Analyzer,
 	}
 }

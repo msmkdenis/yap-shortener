@@ -1,7 +1,7 @@
 package main
 
-import "github.com/msmkdenis/yap-shortener/pkg/linter"
+import "github.com/msmkdenis/yap-shortener/pkg/multicheck"
 
 func main() {
-	linter.Run()
+	multicheck.Run()
 }

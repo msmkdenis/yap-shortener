@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
+	_ "net/http/pprof"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "net/http/pprof"
 
 	"github.com/msmkdenis/yap-shortener/internal/app/shortener"
 )
