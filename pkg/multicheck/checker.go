@@ -11,6 +11,7 @@ import (
 )
 
 // Run runs all analyzers.
+// To run execute from the root the following command: go run ./cmd/staticlint ./...
 func Run() {
 	var analyzers []*analysis.Analyzer
 	analyzers = append(analyzers, basiccheck.GetXPassesAnalyzers()...)

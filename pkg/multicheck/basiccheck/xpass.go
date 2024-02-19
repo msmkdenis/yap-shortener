@@ -1,42 +1,76 @@
 // Package basicchecks defines a list of standard static analyzers.
 // Includes the following list of checks:
 //
-// Includes the following list of checks:
 // `asmdecl` checks for mismatches between assembly files and Go declarations.
+//
 // `assign` checks for useless assignments.
+//
 // `atomic` checks for common mistakes using the sync/atomic package.
+//
 // `atomicalign` checks for non-64-bit-aligned arguments to sync/atomic functions.
+//
 // `bools` checks for common mistakes involving boolean expressions.
+//
 // `cgocall` checks for calls to C code.
+//
 // `composites` checks for composite literals that can be simplified.
+//
 // `composite` checks for unkeyed composite literals.
+//
 // `copylocks` checks for locks erroneously passed by value.
+//
 // `deepequalerrors` checks for the use of reflect.DeepEqual with error values.
+//
 // `defers` checks for common mistakes in defer statements.
+//
 // `directive` checks known Go toolchain directives.
+//
 // `errorsas` checks that the second argument to errors.As is a pointer to a type implementing error.
+//
 // `httpresponse` checks for mistakes using HTTP responses.
+//
 // `ifaceassert` detect impossible interface-to-interface type assertions
+//
 // `loopclosure` checks for references to enclosing loop variables from within nested functions.
+//
 // `lostcancel` check cancel func returned by context.WithCancel is called
+//
 // `nilfunc` checks for useless comparisons between functions and nil.
+//
 // `nilness` check for redundant or impossible nil comparisons
+//
 // `printf` check consistency of Printf format strings and arguments
+//
 // `reflectvaluecompare` check for comparing reflect.Value values with == or reflect.DeepEqual
+//
 // `shadow` checks for shadowed variables.
+//
 // `sigchanyzer` check for unbuffered channel of os.Signal
+//
 // `slog` check for invalid structured logging calls
+//
 // `sortslice` checks for calls to sort.Slice that do not use a slice type as first argument.
+//
 // `stdmethods` check signature of methods of well-known interfaces
+//
 // `stringintconv` check for string(int) conversions
+//
 // `structtag` checks struct field tags are well formed.
+//
 // `testinggoroutine` report calls to (*testing.T).Fatal from goroutines started by a test.
+//
 // `tests` checks for common mistaken usages of tests and examples.
+//
 // `timeformat` check for calls of (time.Time).Format or time.Parse with 2006-02-01
+//
 // `unmarshal` checks for passing non-pointer or non-interface types to unmarshal and decode functions.
+//
 // `unreachable` checks for unreachable code.
+//
 // `unsafeptr` check for invalid conversions of uintptr to unsafe.Pointer
+//
 // `unusedresult` checks for unused results of calls to certain pure functions.
+//
 // `unusedwrite` checks for unused writes
 package basiccheck
 
