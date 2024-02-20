@@ -25,6 +25,7 @@ type Config struct {
 	RepositoryType  Repository
 	SecretKey       string
 	TokenName       string
+	EnableHTTPS     string
 }
 
 // NewConfig creates a new Config instance with default values and returns a pointer to it.
@@ -59,7 +60,10 @@ func (c *Config) parseFlags() {
 	flag.StringVar(&DataBaseDSN, "d", "", "Enter url to connect database as host=host port=port user=postgres password=postgres dbname=dbname sslmode=disable Or use DATABASE_DSN env")
 
 	var SecretKey string
-	flag.StringVar(&SecretKey, "s", "supersecretkey", "Enter secret key Or use SECRET_KEY env")
+	flag.StringVar(&SecretKey, "k", "supersecretkey", "Enter secret key Or use SECRET_KEY env")
+
+	var EnableHTTPS string
+	flag.StringVar(&EnableHTTPS, "s", "false", "Enable HTTPS Or use ENABLE_HTTPS env")
 
 	var TokenName string
 	flag.StringVar(&TokenName, "t", "token", "Enter token name Or use TOKEN_NAME env")
@@ -71,6 +75,7 @@ func (c *Config) parseFlags() {
 	c.FileStoragePath = FileStoragePath
 	c.DataBaseDSN = DataBaseDSN
 	c.SecretKey = SecretKey
+	c.EnableHTTPS = EnableHTTPS
 	c.TokenName = TokenName
 }
 
@@ -93,6 +98,10 @@ func (c *Config) parseEnv() {
 
 	if envSecretKey := os.Getenv("SECRET_KEY"); envSecretKey != "" {
 		c.SecretKey = envSecretKey
+	}
+
+	if envEnableHTTPS := os.Getenv("ENABLE_HTTPS"); envEnableHTTPS != "" {
+		c.EnableHTTPS = envEnableHTTPS
 	}
 
 	if envTokenName := os.Getenv("TOKEN_NAME"); envTokenName != "" {

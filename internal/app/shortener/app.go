@@ -13,6 +13,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/handlers"
@@ -66,10 +67,22 @@ func URLShortenerRun() {
 		serverStopCtx()
 	}()
 
-	errStart := e.Start(cfg.URLServer)
-	if errStart != nil && !errors.Is(errStart, http.ErrServerClosed) {
-		log.Fatal(err)
-	}
+	go func() {
+		if cfg.EnableHTTPS == "true" {
+			e.AutoTLSManager.Cache = autocert.DirCache("cache-dir")
+			errStart := e.StartAutoTLS(cfg.URLServer)
+			if errStart != nil && !errors.Is(errStart, http.ErrServerClosed) {
+				log.Fatal(err)
+			}
+			logger.Info("HTTPS server started", zap.String("address", cfg.URLServer))
+		} else {
+			errStart := e.Start(cfg.URLServer)
+			if errStart != nil && !errors.Is(errStart, http.ErrServerClosed) {
+				log.Fatal(err)
+			}
+			logger.Info("HTTP server started", zap.String("address", cfg.URLServer))
+		}
+	}()
 
 	<-serverCtx.Done()
 }
