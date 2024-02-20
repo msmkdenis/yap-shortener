@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -42,7 +43,8 @@ func URLShortenerRun() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger)
+	wg := &sync.WaitGroup{}
+	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, wg)
 
 	serverCtx, serverStopCtx := context.WithCancel(context.Background())
 
@@ -63,6 +65,7 @@ func URLShortenerRun() {
 		}()
 
 		// Trigger graceful shutdown
+		logger.Info("Shutdown signal received")
 		if errShutdown := e.Shutdown(shutdownCtx); errShutdown != nil {
 			e.Logger.Fatal(errShutdown)
 		}
@@ -76,16 +79,15 @@ func URLShortenerRun() {
 			if errStart != nil && !errors.Is(errStart, http.ErrServerClosed) {
 				log.Fatal(err)
 			}
-			logger.Info("HTTPS server started", zap.String("address", cfg.URLServer))
 		} else {
 			errStart := e.Start(cfg.URLServer)
 			if errStart != nil && !errors.Is(errStart, http.ErrServerClosed) {
 				log.Fatal(err)
 			}
-			logger.Info("HTTP server started", zap.String("address", cfg.URLServer))
 		}
 	}()
 
+	wg.Wait()
 	<-serverCtx.Done()
 }
 

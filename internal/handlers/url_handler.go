@@ -9,6 +9,7 @@ import (
 	"io"
 	"net/http"
 	"strings"
+	"sync"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
@@ -29,6 +30,7 @@ type URLHandler struct {
 	urlPrefix  string
 	jwtManager *jwtgen.JWTManager
 	logger     *zap.Logger
+	wg         *sync.WaitGroup
 }
 
 // URLService represents URL service interface.
@@ -46,12 +48,13 @@ type URLService interface {
 // NewURLHandler creates a new URLHandler instance
 //
 // Registers the URL shortener service http handlers.
-func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, jwtManager *jwtgen.JWTManager, logger *zap.Logger) *URLHandler {
+func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, jwtManager *jwtgen.JWTManager, logger *zap.Logger, wg *sync.WaitGroup) *URLHandler {
 	handler := &URLHandler{
 		urlService: service,
 		urlPrefix:  urlPrefix,
 		jwtManager: jwtManager,
 		logger:     logger,
+		wg:         wg,
 	}
 
 	requestLogger := middleware.InitRequestLogger(logger)
@@ -134,11 +137,13 @@ func (h *URLHandler) DeleteAllURLsByUserID(c echo.Context) error {
 	workerPool.Start()
 	defer workerPool.Stop()
 
+	h.wg.Add(len(shortURLs))
 	for _, shortURL := range shortURLs {
 		log.Info("Submitting task", zap.String("delete shortURL", shortURL))
 		url := shortURL
 		userID := userID
 		workerPool.Submit(func() error {
+			defer h.wg.Done()
 			return h.urlService.DeleteURLByUserID(context.WithoutCancel(c.Request().Context()), userID, url)
 		})
 	}

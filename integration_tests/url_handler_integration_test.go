@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"sync"
 	"testing"
 
 	_ "github.com/golang-migrate/migrate/v4/database/postgres"
@@ -63,7 +64,7 @@ func (s *IntegrationTestSuite) SetupTest() {
 	if err != nil {
 		logger.Error("Unable to get endpoint", zap.Error(err))
 	}
-	s.urlHandler = handlers.NewURLHandler(s.echo, s.urlService, s.endpoint, jwtManager, logger)
+	s.urlHandler = handlers.NewURLHandler(s.echo, s.urlService, s.endpoint, jwtManager, logger, &sync.WaitGroup{})
 }
 
 func (s *IntegrationTestSuite) TestAddURL() {
