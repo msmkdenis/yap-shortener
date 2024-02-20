@@ -29,11 +29,13 @@ import (
 //
 // It does not take any parameters and does not return any values.
 func URLShortenerRun() {
-	cfg := *config.NewConfig()
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
+
+	cfg := *config.NewConfig(logger)
+
 	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
 	repository := initRepository(&cfg, logger)
 	urlService := service.NewURLService(repository, logger)

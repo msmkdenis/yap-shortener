@@ -2,8 +2,11 @@
 package config
 
 import (
+	"encoding/json"
 	"flag"
 	"os"
+
+	"go.uber.org/zap"
 )
 
 // Repository represents the type of the repository.
@@ -16,6 +19,16 @@ const (
 	MemoryRepostiory
 )
 
+type jsonConfig struct {
+	URLServer       string `json:"url_server"`
+	URLPrefix       string `json:"url_prefix"`
+	FileStoragePath string `json:"file_storage_path"`
+	DataBaseDSN     string `json:"database_dsn"`
+	SecretKey       string `json:"secret_key"`
+	TokenName       string `json:"token_name"`
+	EnableHTTPS     string `json:"enable_https"`
+}
+
 // Config represents the configuration for the application.
 type Config struct {
 	URLServer       string
@@ -26,13 +39,14 @@ type Config struct {
 	SecretKey       string
 	TokenName       string
 	EnableHTTPS     string
+	ConfigFile      string
 }
 
 // NewConfig creates a new Config instance with default values and returns a pointer to it.
 //
 // No parameters.
 // Returns a pointer to a Config instance.
-func NewConfig() *Config {
+func NewConfig(logger *zap.Logger) *Config {
 	config := Config{
 		URLServer: "8080",
 		URLPrefix: "http://localhost:8080",
@@ -40,6 +54,11 @@ func NewConfig() *Config {
 
 	config.parseFlags()
 	config.parseEnv()
+	if config.ConfigFile != "" {
+		if err := config.parseJSONConfig(); err != nil {
+			logger.Error("unable to parse config file", zap.Error(err))
+		}
+	}
 
 	config.RepositoryType = config.newRepositoryType()
 	return &config
@@ -68,6 +87,9 @@ func (c *Config) parseFlags() {
 	var TokenName string
 	flag.StringVar(&TokenName, "t", "token", "Enter token name Or use TOKEN_NAME env")
 
+	var ConfigFile string
+	flag.StringVar(&ConfigFile, "c", "", "Enter path to config file Or use CONFIG env")
+
 	flag.Parse()
 
 	c.URLServer = URLServer
@@ -77,6 +99,7 @@ func (c *Config) parseFlags() {
 	c.SecretKey = SecretKey
 	c.EnableHTTPS = EnableHTTPS
 	c.TokenName = TokenName
+	c.ConfigFile = ConfigFile
 }
 
 func (c *Config) parseEnv() {
@@ -107,6 +130,45 @@ func (c *Config) parseEnv() {
 	if envTokenName := os.Getenv("TOKEN_NAME"); envTokenName != "" {
 		c.TokenName = envTokenName
 	}
+
+	if envConfigFile := os.Getenv("CONFIG"); envConfigFile != "" {
+		c.ConfigFile = envConfigFile
+	}
+}
+
+func (c *Config) parseJSONConfig() error {
+	configFile, err := os.Open(c.ConfigFile)
+	if err != nil {
+		return err
+	}
+
+	var config jsonConfig
+	err = json.NewDecoder(configFile).Decode(&config)
+	if err != nil {
+		return err
+	}
+
+	if c.URLServer == "" {
+		c.URLServer = config.URLServer
+	}
+
+	if c.URLPrefix == "" {
+		c.URLPrefix = config.URLPrefix
+	}
+
+	if c.SecretKey == "" {
+		c.SecretKey = config.SecretKey
+	}
+
+	if c.EnableHTTPS == "" {
+		c.EnableHTTPS = config.EnableHTTPS
+	}
+
+	if c.TokenName == "" {
+		c.TokenName = config.TokenName
+	}
+
+	return configFile.Close()
 }
 
 func (c *Config) newRepositoryType() Repository {
