@@ -22,7 +22,7 @@ const (
 	perm = 0o755
 )
 
-// FileURLRepository represents a file-based implementation of the URLRepository interface.
+// URLRepository (file) represents a file-based implementation of the URLRepository interface.
 type URLRepository struct {
 	mu          sync.RWMutex
 	fileStorage *os.File
