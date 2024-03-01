@@ -7,12 +7,14 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"go.uber.org/zap"
+	"golang.org/x/crypto/acme/autocert"
 
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/handlers"
@@ -28,18 +30,21 @@ import (
 //
 // It does not take any parameters and does not return any values.
 func URLShortenerRun() {
-	cfg := *config.NewConfig()
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
+
+	cfg := *config.NewConfig(logger)
+
 	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
 	repository := initRepository(&cfg, logger)
 	urlService := service.NewURLService(repository, logger)
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger)
+	wg := &sync.WaitGroup{}
+	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, wg)
 
 	serverCtx, serverStopCtx := context.WithCancel(context.Background())
 
@@ -60,17 +65,29 @@ func URLShortenerRun() {
 		}()
 
 		// Trigger graceful shutdown
+		logger.Info("Shutdown signal received")
 		if errShutdown := e.Shutdown(shutdownCtx); errShutdown != nil {
 			e.Logger.Fatal(errShutdown)
 		}
 		serverStopCtx()
 	}()
 
-	errStart := e.Start(cfg.URLServer)
-	if errStart != nil && !errors.Is(errStart, http.ErrServerClosed) {
-		log.Fatal(err)
-	}
+	go func() {
+		if cfg.EnableHTTPS == "true" {
+			e.AutoTLSManager.Cache = autocert.DirCache("cache-dir")
+			errStart := e.StartAutoTLS(cfg.URLServer)
+			if errStart != nil && !errors.Is(errStart, http.ErrServerClosed) {
+				log.Fatal(err)
+			}
+		} else {
+			errStart := e.Start(cfg.URLServer)
+			if errStart != nil && !errors.Is(errStart, http.ErrServerClosed) {
+				log.Fatal(err)
+			}
+		}
+	}()
 
+	wg.Wait()
 	<-serverCtx.Done()
 }
 

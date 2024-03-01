@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"strings"
+	"sync"
 	"testing"
 
 	"github.com/msmkdenis/yap-shortener/internal/dto"
@@ -51,7 +52,7 @@ func (s *URLHandlerTestSuite) SetupTest() {
 	s.ctrl = gomock.NewController(s.T())
 	s.echo = echo.New()
 	s.urlService = mock.NewMockURLService(s.ctrl)
-	s.h = NewURLHandler(s.echo, s.urlService, cfgMock.URLPrefix, jwtManager, logger)
+	s.h = NewURLHandler(s.echo, s.urlService, cfgMock.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
 }
 
 func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Unauthorized() {
