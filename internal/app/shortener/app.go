@@ -44,7 +44,7 @@ func URLShortenerRun() {
 	e := echo.New()
 	echopprof.Wrap(e)
 	wg := &sync.WaitGroup{}
-	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, wg)
+	handlers.NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtManager, logger, wg)
 
 	serverCtx, serverStopCtx := context.WithCancel(context.Background())
 

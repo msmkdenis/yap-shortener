@@ -28,6 +28,7 @@ import (
 var cfgMock = &config.Config{
 	URLServer:       "8080",
 	URLPrefix:       "http://localhost:8080",
+	TrustedSubnet:   "",
 	FileStoragePath: "/tmp/short-url-db-test.json",
 	TokenName:       "test",
 	SecretKey:       "test",
@@ -52,7 +53,7 @@ func (s *URLHandlerTestSuite) SetupTest() {
 	s.ctrl = gomock.NewController(s.T())
 	s.echo = echo.New()
 	s.urlService = mock.NewMockURLService(s.ctrl)
-	s.h = NewURLHandler(s.echo, s.urlService, cfgMock.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	s.h = NewURLHandler(s.echo, s.urlService, cfgMock.URLPrefix, cfgMock.TrustedSubnet, jwtManager, logger, &sync.WaitGroup{})
 }
 
 func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Unauthorized() {

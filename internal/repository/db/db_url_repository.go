@@ -43,6 +43,9 @@ var createTmpTableLikeURL string
 //go:embed queries/upsert_and_return_urls_from_tmp_table.sql
 var upsertAndReturnURLsFromTmpTable string
 
+//go:embed queries/select_stats.sql
+var selectStats string
+
 // PostgresURLRepository represents a PostgreSQL implementation of the URLRepository interface.
 type PostgresURLRepository struct {
 	PostgresPool *PostgresPool
@@ -167,6 +170,19 @@ func (r *PostgresURLRepository) SelectAll(ctx context.Context) ([]model.URL, err
 	}
 
 	return urls, nil
+}
+
+// SelectStats retrieves stats from PostgreSQL DB.
+func (r *PostgresURLRepository) SelectStats(ctx context.Context) (*model.URLStats, error) {
+	var urlStats model.URLStats
+	err := r.PostgresPool.db.QueryRow(ctx, selectStats).
+		Scan(&urlStats.Urls, &urlStats.Users)
+	if err != nil {
+			err = apperr.NewValueError("query failed", apperr.Caller(), err)
+		return nil, err
+	}
+
+	return &urlStats, nil
 }
 
 // DeleteAll deletes all URL from PostgreSQL DB.

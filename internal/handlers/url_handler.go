@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"sync"
@@ -26,11 +27,12 @@ import (
 
 // URLHandler represents URL handler struct.
 type URLHandler struct {
-	urlService URLService
-	urlPrefix  string
-	jwtManager *jwtgen.JWTManager
-	logger     *zap.Logger
-	wg         *sync.WaitGroup
+	urlService    URLService
+	urlPrefix     string
+	trustedSubnet string
+	jwtManager    *jwtgen.JWTManager
+	logger        *zap.Logger
+	wg            *sync.WaitGroup
 }
 
 // URLService represents URL service interface.
@@ -42,19 +44,21 @@ type URLService interface {
 	DeleteAll(ctx context.Context) error
 	DeleteURLByUserID(ctx context.Context, userID string, shortURLs string) error
 	GetByyID(ctx context.Context, key string) (string, error)
+	GetStats(ctx context.Context) (*dto.URLStats, error)
 	Ping(ctx context.Context) error
 }
 
 // NewURLHandler creates a new URLHandler instance
 //
 // Registers the URL shortener service http handlers.
-func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, jwtManager *jwtgen.JWTManager, logger *zap.Logger, wg *sync.WaitGroup) *URLHandler {
+func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, trustedSubnet string, jwtManager *jwtgen.JWTManager, logger *zap.Logger, wg *sync.WaitGroup) *URLHandler {
 	handler := &URLHandler{
-		urlService: service,
-		urlPrefix:  urlPrefix,
-		jwtManager: jwtManager,
-		logger:     logger,
-		wg:         wg,
+		urlService:    service,
+		urlPrefix:     urlPrefix,
+		trustedSubnet: trustedSubnet,
+		jwtManager:    jwtManager,
+		logger:        logger,
+		wg:            wg,
 	}
 
 	requestLogger := middleware.InitRequestLogger(logger)
@@ -80,6 +84,8 @@ func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, jwtManage
 	protected.GET("/urls", handler.FindAllURLByUserID)
 	protected.DELETE("/urls", handler.DeleteAllURLsByUserID)
 
+	e.GET("/api/internal/stats", handler.GetStats)
+
 	return handler
 }
 
@@ -103,6 +109,35 @@ func (h *URLHandler) FindAllURLByUserID(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, savedURLs)
+}
+
+// GetStats returns URL stats.
+func (h *URLHandler) GetStats(c echo.Context) error {
+	if h.trustedSubnet == "" {
+		return c.NoContent(http.StatusForbidden)
+	}
+
+	ip := c.Request().Header.Get("X-Real-IP")
+	if ip == "" {
+		return c.NoContent(http.StatusForbidden)
+	}
+
+	_, ipNet, err := net.ParseCIDR(h.trustedSubnet)
+	if err != nil {
+		h.logger.Error("StatusInternalServerError: unable to parse CIDR", zap.Error(fmt.Errorf("%s %w", apperr.Caller(), err)))
+		return c.NoContent(http.StatusInternalServerError)
+	}
+
+	if !ipNet.Contains(net.ParseIP(ip)) {
+		return c.NoContent(http.StatusForbidden)
+	}
+
+	stats, err := h.urlService.GetStats(c.Request().Context())
+	if err != nil {
+		h.logger.Error("StatusInternalServerError: unknown error", zap.Error(fmt.Errorf("%s %w", apperr.Caller(), err)))
+		return c.JSON(http.StatusInternalServerError, err)
+	}
+	return c.JSON(http.StatusOK, stats)
 }
 
 // DeleteAllURLsByUserID deletes all URLs associated with a user ID.

@@ -26,8 +26,9 @@ import (
 )
 
 var cfgMock = &config.Config{
-	TokenName: "test",
-	SecretKey: "test",
+	TokenName:     "test",
+	SecretKey:     "test",
+	TrustedSubnet: "",
 }
 
 type IntegrationTestSuite struct {
@@ -64,7 +65,7 @@ func (s *IntegrationTestSuite) SetupTest() {
 	if err != nil {
 		logger.Error("Unable to get endpoint", zap.Error(err))
 	}
-	s.urlHandler = handlers.NewURLHandler(s.echo, s.urlService, s.endpoint, jwtManager, logger, &sync.WaitGroup{})
+	s.urlHandler = handlers.NewURLHandler(s.echo, s.urlService, s.endpoint, cfgMock.TrustedSubnet, jwtManager, logger, &sync.WaitGroup{})
 }
 
 func (s *IntegrationTestSuite) TestAddURL() {

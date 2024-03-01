@@ -24,6 +24,7 @@ import (
 var cfgExampleTest = &config.Config{
 	URLServer:       "8080",
 	URLPrefix:       "http://localhost:8080",
+	TrustedSubnet:   "",
 	FileStoragePath: "/tmp/short-url-db-test.json",
 	TokenName:       "test",
 	SecretKey:       "test",
@@ -41,7 +42,7 @@ func ExampleURLHandler_AddURL() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	h := NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtManager, logger, &sync.WaitGroup{})
 
 	request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", strings.NewReader("https://example.com"))
 	w := httptest.NewRecorder()
@@ -69,7 +70,7 @@ func ExampleURLHandler_FindAllURLByUserID() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	h := NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtManager, logger, &sync.WaitGroup{})
 
 	request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/api/user/urls", strings.NewReader(""))
 	w := httptest.NewRecorder()
@@ -98,7 +99,7 @@ func ExampleURLHandler_AddBatch() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	h := NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtManager, logger, &sync.WaitGroup{})
 
 	fullURL1 := dto.URLBatchRequest{
 		CorrelationID: "2d5d144a-f272-40d3-b3aa-d4b1b9da277c",
@@ -143,7 +144,7 @@ func ExampleURLHandler_FindAll() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	h := NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtManager, logger, &sync.WaitGroup{})
 
 	fullURL1 := dto.URLBatchRequest{
 		CorrelationID: "2d5d144a-f272-40d3-b3aa-d4b1b9da277c",
@@ -183,7 +184,7 @@ func ExampleURLHandler_FindURL() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	h := NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtManager, logger, &sync.WaitGroup{})
 
 	urlService.Add(context.Background(), "https://example.com", "localhost:8080", "token")
 
@@ -210,7 +211,7 @@ func ExampleURLHandler_AddShorten() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	h := NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtManager, logger, &sync.WaitGroup{})
 
 	requestBody := dto.URLRequest{URL: "https://example.com"}
 	body, _ := json.Marshal(requestBody)

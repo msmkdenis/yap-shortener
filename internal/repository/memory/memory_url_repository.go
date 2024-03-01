@@ -29,6 +29,20 @@ func NewURLRepository(logger *zap.Logger) *URLRepository {
 	}
 }
 
+// SelectStats retrieves stats from in-memory storage.
+func (r *URLRepository) SelectStats(ctx context.Context) (*model.URLStats, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	uniqueUsers := make(map[string]struct{}, 0)
+
+	for _, url := range r.storage {
+		uniqueUsers[url.UserID] = struct{}{}
+	}
+
+	return &model.URLStats{Urls: len(r.storage), Users: len(uniqueUsers)}, nil
+}
+
 // DeleteURLByUserID deletes URL by user ID from in-memory storage.
 func (r *URLRepository) DeleteURLByUserID(ctx context.Context, userID string, shortURL string) error {
 	r.mu.Lock()

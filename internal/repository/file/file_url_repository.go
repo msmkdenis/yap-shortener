@@ -167,6 +167,37 @@ func (r *URLRepository) Insert(ctx context.Context, url model.URL) (*model.URL, 
 	return &url, nil
 }
 
+// SelectStats retrieves stats from file.
+func (r *URLRepository) SelectStats(ctx context.Context) (*model.URLStats, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	file, err := os.OpenFile(r.fileStorage.Name(), os.O_RDONLY, perm)
+	if err != nil {
+		return nil, apperr.NewValueError("unable to open file", apperr.Caller(), err)
+	}
+
+	decoder := json.NewDecoder(file)
+	defer file.Close()
+
+	counter := 0
+	uniqueUsers := make(map[string]struct{}, 0)
+
+	for {
+		err := decoder.Decode(&model.URL{})
+		if errors.Is(err, io.EOF) {
+			break
+		}
+		if err != nil {
+			return nil, apperr.NewValueError("unable to decode from file", apperr.Caller(), err)
+		}
+		counter++
+		uniqueUsers[model.URL{}.UserID] = struct{}{}
+	}
+
+	return &model.URLStats{Urls: counter, Users: len(uniqueUsers)}, nil
+}
+
 // SelectByID retrieves URL from file by ID
 func (r *URLRepository) SelectByID(ctx context.Context, key string) (*model.URL, error) {
 	r.mu.RLock()
