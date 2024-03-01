@@ -178,7 +178,7 @@ func (r *PostgresURLRepository) SelectStats(ctx context.Context) (*model.URLStat
 	err := r.PostgresPool.db.QueryRow(ctx, selectStats).
 		Scan(&urlStats.Urls, &urlStats.Users)
 	if err != nil {
-			err = apperr.NewValueError("query failed", apperr.Caller(), err)
+		err = apperr.NewValueError("query failed", apperr.Caller(), err)
 		return nil, err
 	}
 
