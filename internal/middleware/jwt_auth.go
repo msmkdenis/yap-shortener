@@ -4,13 +4,12 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-
-	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 
 	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
@@ -19,6 +18,8 @@ var authMandatoryMethods = map[string]struct{}{
 	"/proto.URLShortener/GetURLsByUserID":    {},
 	"/proto.URLShortener/DeleteURLsByUserID": {},
 }
+
+type UserIDContextKey string
 
 // JWTAuth represents JWT authentication middleware.
 type JWTAuth struct {
@@ -79,6 +80,6 @@ func (j *JWTAuth) GRPCJWTAuth(ctx context.Context, req interface{}, info *grpc.U
 		return nil, status.Errorf(codes.Unauthenticated, "authentification by UserID failed")
 	}
 
-	ctx = context.WithValue(ctx, "userID", userID)
+	ctx = context.WithValue(ctx, UserIDContextKey("userID"), userID)
 	return handler(ctx, req)
 }

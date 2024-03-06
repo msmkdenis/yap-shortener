@@ -15,6 +15,7 @@ import (
 	"google.golang.org/grpc/status"
 
 	"github.com/msmkdenis/yap-shortener/internal/dto"
+	"github.com/msmkdenis/yap-shortener/internal/middleware"
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	pb "github.com/msmkdenis/yap-shortener/internal/proto"
 	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
@@ -98,7 +99,7 @@ func (h *URLHandler) PostURL(ctx context.Context, in *pb.PostURLRequest) (*pb.Po
 		return nil, status.Error(codes.InvalidArgument, "empty url")
 	}
 
-	userID, ok := ctx.Value("userID").(string)
+	userID, ok := ctx.Value(middleware.UserIDContextKey("userID")).(string)
 	if !ok {
 		h.logger.Error("Internal server error", zap.Error(urlErr.ErrUnableToGetUserIDFromContext))
 		return nil, status.Error(codes.Internal, "internal error")
@@ -144,7 +145,7 @@ func (h *URLHandler) PostBatchURLs(ctx context.Context, in *pb.PostBatchURLReque
 		})
 	}
 
-	userID, ok := ctx.Value("userID").(string)
+	userID, ok := ctx.Value(middleware.UserIDContextKey("userID")).(string)
 	if !ok {
 		h.logger.Error("Internal server error", zap.Error(urlErr.ErrUnableToGetUserIDFromContext))
 		return nil, status.Error(codes.Internal, "internal error")
@@ -233,7 +234,7 @@ func (h *URLHandler) DeleteAllURLs(ctx context.Context, _ *pb.DeleteAllURLsReque
 
 // GetURLsByUserID handles gRPC GetURLsByUserID request
 func (h *URLHandler) GetURLsByUserID(ctx context.Context, _ *pb.GetURLsByUserIDRequest) (*pb.GetURLsByUserIDResponse, error) {
-	userID, ok := ctx.Value("userID").(string)
+	userID, ok := ctx.Value(middleware.UserIDContextKey("userID")).(string)
 	if !ok {
 		h.logger.Error("Internal server error", zap.Error(urlErr.ErrUnableToGetUserIDFromContext))
 		return nil, status.Error(codes.Internal, "internal error")
@@ -263,7 +264,7 @@ func (h *URLHandler) GetURLsByUserID(ctx context.Context, _ *pb.GetURLsByUserIDR
 
 // DeleteURLsByUserID handles gRPC DeleteURLsByUserID request
 func (h *URLHandler) DeleteURLsByUserID(ctx context.Context, in *pb.DeleteURLsByUserIDRequest) (*pb.DeleteURLsByUserIDResponse, error) {
-	userID, ok := ctx.Value("userID").(string)
+	userID, ok := ctx.Value(middleware.UserIDContextKey("userID")).(string)
 	if !ok {
 		h.logger.Error("Internal server error", zap.Error(urlErr.ErrUnableToGetUserIDFromContext))
 		return nil, status.Error(codes.Internal, "internal error")

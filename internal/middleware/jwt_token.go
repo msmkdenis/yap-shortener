@@ -2,16 +2,14 @@ package middleware
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+	"go.uber.org/zap"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/metadata"
 	"google.golang.org/grpc/status"
-
-	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 
 	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
@@ -19,6 +17,8 @@ import (
 var jwtCheckerSkipMethods = map[string]struct{}{
 	"/proto.URLShortener/GetStats": {},
 }
+
+type TokenContextKey string
 
 // JWTCheckerCreator represents JWT checker creator middleware.
 type JWTCheckerCreator struct {
@@ -85,7 +85,6 @@ func (j *JWTCheckerCreator) GRPCJWTCheckOrCreate(ctx context.Context, req interf
 		return handler(ctx, req)
 	}
 
-	fmt.Println(info.FullMethod)
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.InvalidArgument, "missing metadata")
@@ -112,29 +111,21 @@ func (j *JWTCheckerCreator) GRPCJWTCheckOrCreate(ctx context.Context, req interf
 		return handler(ctx, req)
 	}
 
-	ctx = context.WithValue(ctx, "userID", userID)
-	if err != nil {
-		j.logger.Error("unable to send header", zap.Error(err))
-		return nil, status.Errorf(codes.Internal, "unable to send header")
-	}
+	ctx = context.WithValue(ctx, UserIDContextKey("userID"), userID)
 	ctx = metadata.NewIncomingContext(ctx, md)
 	return handler(ctx, req)
 }
 
 func (j *JWTCheckerCreator) setUserIDAndReturn(ctx context.Context, md metadata.MD) (context.Context, error) {
 	cookie := j.makeCookie()
-	ctx = context.WithValue(ctx, j.jwtManager.TokenName, cookie.Value)
+	ctx = context.WithValue(ctx, TokenContextKey(j.jwtManager.TokenName), cookie.Value)
 	newUserID, err := j.jwtManager.GetUserID(cookie.Value)
 	if err != nil {
 		j.logger.Error("unable to parse UserID, while creating new token", zap.Error(err))
 		return nil, status.Errorf(codes.Internal, "unable to parse UserID, while creating new token")
 	}
-	ctx = context.WithValue(ctx, "userID", newUserID)
+	ctx = context.WithValue(ctx, UserIDContextKey("userID"), newUserID)
 	md.Append(j.jwtManager.TokenName, cookie.Value)
-	if err != nil {
-		j.logger.Error("unable to send header", zap.Error(err))
-		return nil, status.Errorf(codes.Internal, "unable to send header")
-	}
 	ctx = metadata.NewIncomingContext(ctx, md)
 	return ctx, nil
 }
