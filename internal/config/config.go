@@ -28,6 +28,7 @@ type jsonConfig struct {
 	TokenName       string `json:"token_name"`
 	EnableHTTPS     string `json:"enable_https"`
 	TrustedSubnet   string `json:"trusted_subnet"`
+	GRPCServer      string `json:"grpc_server"`
 }
 
 // Config represents the configuration for the application.
@@ -42,6 +43,7 @@ type Config struct {
 	EnableHTTPS     string
 	ConfigFile      string
 	TrustedSubnet   string
+	GRPCServer      string
 }
 
 // NewConfig creates a new Config instance with default values and returns a pointer to it.
@@ -93,7 +95,10 @@ func (c *Config) parseFlags() {
 	flag.StringVar(&ConfigFile, "c", "", "Enter path to config file Or use CONFIG env")
 
 	var TrustedSubnet string
-	flag.StringVar(&TrustedSubnet, "t", "", "Enter trusted subnet Or use TRUSTED_SUBNET env")
+	flag.StringVar(&TrustedSubnet, "t", "127.0.0.1/24", "Enter trusted subnet Or use TRUSTED_SUBNET env")
+
+	var GRPCServer string
+	flag.StringVar(&GRPCServer, "g", ":3300", "Enter gRPC server address Or use GRPC_SERVER env")
 
 	flag.Parse()
 
@@ -106,6 +111,7 @@ func (c *Config) parseFlags() {
 	c.TokenName = TokenName
 	c.ConfigFile = ConfigFile
 	c.TrustedSubnet = TrustedSubnet
+	c.GRPCServer = GRPCServer
 }
 
 func (c *Config) parseEnv() {
@@ -144,6 +150,10 @@ func (c *Config) parseEnv() {
 	if envTrustedSubnet := os.Getenv("TRUSTED_SUBNET"); envTrustedSubnet != "" {
 		c.TrustedSubnet = envTrustedSubnet
 	}
+
+	if envGRPCServer := os.Getenv("GRPC_SERVER"); envGRPCServer != "" {
+		c.GRPCServer = envGRPCServer
+	}
 }
 
 func (c *Config) parseJSONConfig() error {
@@ -180,6 +190,10 @@ func (c *Config) parseJSONConfig() error {
 
 	if c.TrustedSubnet == "" {
 		c.TrustedSubnet = config.TrustedSubnet
+	}
+
+	if c.GRPCServer == "" {
+		c.GRPCServer = config.GRPCServer
 	}
 
 	return configFile.Close()

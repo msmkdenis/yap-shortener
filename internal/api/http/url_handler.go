@@ -1,5 +1,5 @@
-// Package handlers implements the URL shortener service http handlers.
-package handlers
+// Package http implements the URL shortener service http handlers.
+package http
 
 import (
 	"context"
@@ -21,7 +21,6 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
 	"github.com/msmkdenis/yap-shortener/pkg/apperr"
-	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 	"github.com/msmkdenis/yap-shortener/pkg/workerpool"
 )
 
@@ -30,7 +29,6 @@ type URLHandler struct {
 	urlService    URLService
 	urlPrefix     string
 	trustedSubnet string
-	jwtManager    *jwtgen.JWTManager
 	logger        *zap.Logger
 	wg            *sync.WaitGroup
 }
@@ -51,19 +49,16 @@ type URLService interface {
 // NewURLHandler creates a new URLHandler instance
 //
 // Registers the URL shortener service http handlers.
-func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, trustedSubnet string, jwtManager *jwtgen.JWTManager, logger *zap.Logger, wg *sync.WaitGroup) *URLHandler {
+func NewURLHandler(e *echo.Echo, service URLService, urlPrefix string, trustedSubnet string, jwtCheckerCreator *middleware.JWTCheckerCreator, jwtAuth *middleware.JWTAuth, logger *zap.Logger, wg *sync.WaitGroup) *URLHandler {
 	handler := &URLHandler{
 		urlService:    service,
 		urlPrefix:     urlPrefix,
 		trustedSubnet: trustedSubnet,
-		jwtManager:    jwtManager,
 		logger:        logger,
 		wg:            wg,
 	}
 
 	requestLogger := middleware.InitRequestLogger(logger)
-	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
-	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
 
 	e.Use(requestLogger.RequestLogger())
 	e.Use(middleware.Compress())

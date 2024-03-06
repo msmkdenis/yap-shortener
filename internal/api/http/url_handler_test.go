@@ -1,4 +1,4 @@
-package handlers
+package http
 
 import (
 	"encoding/json"
@@ -8,6 +8,8 @@ import (
 	"strings"
 	"sync"
 	"testing"
+
+	"github.com/msmkdenis/yap-shortener/internal/middleware"
 
 	"github.com/msmkdenis/yap-shortener/internal/dto"
 
@@ -50,10 +52,12 @@ func (s *URLHandlerTestSuite) SetupTest() {
 	cfgMock.URLPrefix = "http://localhost:8080"
 	logger, _ := zap.NewProduction()
 	jwtManager := jwtgen.InitJWTManager(cfgMock.TokenName, cfgMock.SecretKey, logger)
+	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
+	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
 	s.ctrl = gomock.NewController(s.T())
 	s.echo = echo.New()
 	s.urlService = mock.NewMockURLService(s.ctrl)
-	s.h = NewURLHandler(s.echo, s.urlService, cfgMock.URLPrefix, cfgMock.TrustedSubnet, jwtManager, logger, &sync.WaitGroup{})
+	s.h = NewURLHandler(s.echo, s.urlService, cfgMock.URLPrefix, cfgMock.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 }
 
 func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Unauthorized() {

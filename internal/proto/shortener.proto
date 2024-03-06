@@ -1,0 +1,92 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "github.com/msmkdenis/yap-shortener/internal/proto";
+
+message GetListURLsRequest {}
+
+message GetListURLsResponse {
+  repeated string urls = 1;
+}
+
+message PostURLRequest {
+  string url = 1;
+}
+
+message PostURLResponse {
+  string short_url = 1;
+}
+
+message PostBatchURLRequest {
+  repeated BatchURLRequest batch_urls = 1;
+}
+
+message BatchURLRequest {
+  string correlation_id = 1;
+  string original_url = 2;
+}
+
+message PostBatchURLResponse {
+  repeated BatchURLResponse batch_urls = 1;
+}
+
+message BatchURLResponse {
+  string correlation_id = 1;
+  string ShortenedURL = 2;
+}
+
+message GetURLRequest {
+  string short_url = 1;
+}
+
+message GetURLResponse {
+  string url = 1;
+}
+
+message PingRequest {}
+
+message PingResponse {}
+
+message DeleteAllURLsRequest {}
+
+message DeleteAllURLsResponse {}
+
+message GetURLsByUserIDRequest {}
+
+message GetURLsByUserIDResponse {
+  repeated URLByUserID urls = 1;
+}
+
+message URLByUserID {
+  string short_url = 1;
+  string original_url = 2;
+  bool deleted_flag = 3;
+}
+
+message DeleteURLsByUserIDRequest {
+  repeated string short_urls = 1;
+}
+
+message DeleteURLsByUserIDResponse{}
+
+message GetStatsRequest {}
+
+message GetStatsResponse {
+  uint32 urls = 1;
+  uint32 users = 2;
+}
+
+service URLShortener {
+  rpc GetListURLs(GetListURLsRequest) returns (GetListURLsResponse);
+  rpc PostURL(PostURLRequest) returns (PostURLResponse);
+  rpc PostBatchURLs(PostBatchURLRequest) returns (PostBatchURLResponse);
+  rpc GetURL(GetURLRequest) returns (GetURLResponse);
+  rpc Ping(PingRequest) returns (PingResponse);
+  rpc DeleteAllURLs(DeleteAllURLsRequest) returns (DeleteAllURLsResponse);
+  rpc GetURLsByUserID(GetURLsByUserIDRequest) returns (GetURLsByUserIDResponse);
+  rpc DeleteURLsByUserID(DeleteURLsByUserIDRequest) returns (DeleteURLsByUserIDResponse);
+  rpc GetStats(GetStatsRequest) returns (GetStatsResponse);
+}
+
+
