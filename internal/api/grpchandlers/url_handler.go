@@ -1,4 +1,4 @@
-package grpc
+package grpchandlers
 
 import (
 	"context"
@@ -24,8 +24,8 @@ import (
 	"github.com/msmkdenis/yap-shortener/pkg/workerpool"
 )
 
-type URLHandler struct {
-	urlService    URLService
+type URLShorten struct {
+	urlService    URLShortenerService
 	urlPrefix     string
 	trustedSubnet string
 	jwtManager    *jwtgen.JWTManager
@@ -34,8 +34,8 @@ type URLHandler struct {
 	pb.UnimplementedURLShortenerServer
 }
 
-// URLService represents URL service interface.
-type URLService interface {
+// URLShortenerService represents URL service interface.
+type URLShortenerService interface {
 	Add(ctx context.Context, s string, host string, userID string) (*model.URL, error)
 	AddAll(ctx context.Context, urls []dto.URLBatchRequest, host string, userID string) ([]dto.URLBatchResponse, error)
 	GetAll(ctx context.Context) ([]string, error)
@@ -47,9 +47,9 @@ type URLService interface {
 	Ping(ctx context.Context) error
 }
 
-// NewURLHandler creates a new gRPC URLHandler instance
-func NewURLHandler(service URLService, urlPrefix string, trustedSubnet string, jwtManager *jwtgen.JWTManager, logger *zap.Logger, wg *sync.WaitGroup) *URLHandler {
-	handler := &URLHandler{
+// NewURLShorten creates a new gRPC URLShorten instance
+func NewURLShorten(service URLShortenerService, urlPrefix string, trustedSubnet string, jwtManager *jwtgen.JWTManager, logger *zap.Logger, wg *sync.WaitGroup) *URLShorten {
+	handler := &URLShorten{
 		urlService:    service,
 		urlPrefix:     urlPrefix,
 		trustedSubnet: trustedSubnet,
@@ -62,7 +62,7 @@ func NewURLHandler(service URLService, urlPrefix string, trustedSubnet string, j
 }
 
 // GetListURLs handles gRPC GetListURLs request
-func (h *URLHandler) GetListURLs(ctx context.Context, _ *pb.GetListURLsRequest) (*pb.GetListURLsResponse, error) {
+func (h *URLShorten) GetListURLs(ctx context.Context, _ *pb.GetListURLsRequest) (*pb.GetListURLsResponse, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.InvalidArgument, "missing metadata")
@@ -88,7 +88,7 @@ func (h *URLHandler) GetListURLs(ctx context.Context, _ *pb.GetListURLsRequest) 
 }
 
 // PostURL handles gRPC PostURL request
-func (h *URLHandler) PostURL(ctx context.Context, in *pb.PostURLRequest) (*pb.PostURLResponse, error) {
+func (h *URLShorten) PostURL(ctx context.Context, in *pb.PostURLRequest) (*pb.PostURLResponse, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.InvalidArgument, "missing metadata")
@@ -126,7 +126,7 @@ func (h *URLHandler) PostURL(ctx context.Context, in *pb.PostURLRequest) (*pb.Po
 }
 
 // PostBatchURLs handles gRPC PostBatchURLs request
-func (h *URLHandler) PostBatchURLs(ctx context.Context, in *pb.PostBatchURLRequest) (*pb.PostBatchURLResponse, error) {
+func (h *URLShorten) PostBatchURLs(ctx context.Context, in *pb.PostBatchURLRequest) (*pb.PostBatchURLResponse, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.InvalidArgument, "missing metadata")
@@ -175,7 +175,7 @@ func (h *URLHandler) PostBatchURLs(ctx context.Context, in *pb.PostBatchURLReque
 }
 
 // GetURL handles gRPC GetURL request
-func (h *URLHandler) GetURL(ctx context.Context, in *pb.GetURLRequest) (*pb.GetURLResponse, error) {
+func (h *URLShorten) GetURL(ctx context.Context, in *pb.GetURLRequest) (*pb.GetURLResponse, error) {
 	md, ok := metadata.FromIncomingContext(ctx)
 	if !ok {
 		return nil, status.Errorf(codes.InvalidArgument, "missing metadata")
@@ -212,7 +212,7 @@ func (h *URLHandler) GetURL(ctx context.Context, in *pb.GetURLRequest) (*pb.GetU
 }
 
 // Ping handles gRPC Ping request
-func (h *URLHandler) Ping(ctx context.Context, _ *pb.PingRequest) (*pb.PingResponse, error) {
+func (h *URLShorten) Ping(ctx context.Context, _ *pb.PingRequest) (*pb.PingResponse, error) {
 	err := h.urlService.Ping(ctx)
 	if err != nil {
 		h.logger.Error("GRPCInternalServerError: internal error:", zap.Error(fmt.Errorf("%s %w", apperr.Caller(), err)))
@@ -223,7 +223,7 @@ func (h *URLHandler) Ping(ctx context.Context, _ *pb.PingRequest) (*pb.PingRespo
 }
 
 // DeleteAllURLs handles gRPC DeleteAllURLs request
-func (h *URLHandler) DeleteAllURLs(ctx context.Context, _ *pb.DeleteAllURLsRequest) (*pb.DeleteAllURLsResponse, error) {
+func (h *URLShorten) DeleteAllURLs(ctx context.Context, _ *pb.DeleteAllURLsRequest) (*pb.DeleteAllURLsResponse, error) {
 	if err := h.urlService.DeleteAll(ctx); err != nil {
 		h.logger.Error("StatusInternalServerError: Unknown error:", zap.Error(fmt.Errorf("%s %w", apperr.Caller(), err)))
 		return nil, status.Error(codes.Internal, "internal error")
@@ -233,7 +233,7 @@ func (h *URLHandler) DeleteAllURLs(ctx context.Context, _ *pb.DeleteAllURLsReque
 }
 
 // GetURLsByUserID handles gRPC GetURLsByUserID request
-func (h *URLHandler) GetURLsByUserID(ctx context.Context, _ *pb.GetURLsByUserIDRequest) (*pb.GetURLsByUserIDResponse, error) {
+func (h *URLShorten) GetURLsByUserID(ctx context.Context, _ *pb.GetURLsByUserIDRequest) (*pb.GetURLsByUserIDResponse, error) {
 	userID, ok := ctx.Value(middleware.UserIDContextKey("userID")).(string)
 	if !ok {
 		h.logger.Error("Internal server error", zap.Error(urlErr.ErrUnableToGetUserIDFromContext))
@@ -263,7 +263,7 @@ func (h *URLHandler) GetURLsByUserID(ctx context.Context, _ *pb.GetURLsByUserIDR
 }
 
 // DeleteURLsByUserID handles gRPC DeleteURLsByUserID request
-func (h *URLHandler) DeleteURLsByUserID(ctx context.Context, in *pb.DeleteURLsByUserIDRequest) (*pb.DeleteURLsByUserIDResponse, error) {
+func (h *URLShorten) DeleteURLsByUserID(ctx context.Context, in *pb.DeleteURLsByUserIDRequest) (*pb.DeleteURLsByUserIDResponse, error) {
 	userID, ok := ctx.Value(middleware.UserIDContextKey("userID")).(string)
 	if !ok {
 		h.logger.Error("Internal server error", zap.Error(urlErr.ErrUnableToGetUserIDFromContext))
@@ -294,7 +294,7 @@ func (h *URLHandler) DeleteURLsByUserID(ctx context.Context, in *pb.DeleteURLsBy
 }
 
 // GetStats handles gRPC GetStats request
-func (h *URLHandler) GetStats(ctx context.Context, _ *pb.GetStatsRequest) (*pb.GetStatsResponse, error) {
+func (h *URLShorten) GetStats(ctx context.Context, _ *pb.GetStatsRequest) (*pb.GetStatsResponse, error) {
 	if h.trustedSubnet == "" {
 		return nil, status.Error(codes.PermissionDenied, "stats not available without trusted subnet")
 	}

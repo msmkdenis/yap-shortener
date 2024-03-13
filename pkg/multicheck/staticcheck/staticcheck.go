@@ -11,7 +11,7 @@
 //	SA1005	Invalid first argument to exec.Command
 //	SA1006	Printf with dynamic first argument and no further arguments
 //	SA1007	Invalid URL in net/url.Parse
-//	SA1008	Non-canonical key in http.Header map
+//	SA1008	Non-canonical key in httphandlers.Header map
 //	SA1010	(*regexp.Regexp).FindAll called with n == 0, which will always return zero results
 //	SA1011	Various methods in the strings package expect valid UTF-8, but invalid input is provided
 //	SA1012	A nil context.Context is being passed to a function, consider using context.TODO instead

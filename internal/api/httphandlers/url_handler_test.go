@@ -1,4 +1,4 @@
-package http
+package httphandlers
 
 import (
 	"encoding/json"
@@ -9,10 +9,6 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/msmkdenis/yap-shortener/internal/middleware"
-
-	"github.com/msmkdenis/yap-shortener/internal/dto"
-
 	"github.com/golang/mock/gomock"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -21,6 +17,8 @@ import (
 	"go.uber.org/zap"
 
 	"github.com/msmkdenis/yap-shortener/internal/config"
+	"github.com/msmkdenis/yap-shortener/internal/dto"
+	"github.com/msmkdenis/yap-shortener/internal/middleware"
 	mock "github.com/msmkdenis/yap-shortener/internal/mocks"
 	"github.com/msmkdenis/yap-shortener/internal/model"
 	urlErr "github.com/msmkdenis/yap-shortener/internal/urlerr"
@@ -38,7 +36,7 @@ var cfgMock = &config.Config{
 
 type URLHandlerTestSuite struct {
 	suite.Suite
-	h          *URLHandler
+	h          *URLShorten
 	urlService *mock.MockURLService
 	echo       *echo.Echo
 	ctrl       *gomock.Controller
@@ -57,7 +55,7 @@ func (s *URLHandlerTestSuite) SetupTest() {
 	s.ctrl = gomock.NewController(s.T())
 	s.echo = echo.New()
 	s.urlService = mock.NewMockURLService(s.ctrl)
-	s.h = NewURLHandler(s.echo, s.urlService, cfgMock.URLPrefix, cfgMock.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
+	s.h = NewURLShorten(s.echo, s.urlService, cfgMock.URLPrefix, cfgMock.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 }
 
 func (s *URLHandlerTestSuite) TestDeleteAllURLsByUserID_Unauthorized() {

@@ -1,4 +1,4 @@
-package http
+package httphandlers
 
 import (
 	"context"
@@ -10,13 +10,12 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/msmkdenis/yap-shortener/internal/middleware"
-
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/dto"
+	"github.com/msmkdenis/yap-shortener/internal/middleware"
 	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 	"github.com/msmkdenis/yap-shortener/internal/service"
 	"github.com/msmkdenis/yap-shortener/pkg/echopprof"
@@ -32,7 +31,7 @@ var cfgExampleTest = &config.Config{
 	SecretKey:       "test",
 }
 
-func ExampleURLHandler_AddURL() {
+func ExampleURLShortener_AddURL() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -46,7 +45,7 @@ func ExampleURLHandler_AddURL() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
+	h := NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 
 	request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", strings.NewReader("https://example.com"))
 	w := httptest.NewRecorder()
@@ -62,7 +61,7 @@ func ExampleURLHandler_AddURL() {
 	// 201
 }
 
-func ExampleURLHandler_FindAllURLByUserID() {
+func ExampleURLShortener_FindAllURLByUserID() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -76,7 +75,7 @@ func ExampleURLHandler_FindAllURLByUserID() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
+	h := NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 
 	request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/api/user/urls", strings.NewReader(""))
 	w := httptest.NewRecorder()
@@ -93,7 +92,7 @@ func ExampleURLHandler_FindAllURLByUserID() {
 	// Output: 200
 }
 
-func ExampleURLHandler_AddBatch() {
+func ExampleURLShortener_AddBatch() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -107,7 +106,7 @@ func ExampleURLHandler_AddBatch() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
+	h := NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 
 	fullURL1 := dto.URLBatchRequest{
 		CorrelationID: "2d5d144a-f272-40d3-b3aa-d4b1b9da277c",
@@ -140,7 +139,7 @@ func ExampleURLHandler_AddBatch() {
 	// 201
 }
 
-func ExampleURLHandler_FindAll() {
+func ExampleURLShortener_FindAll() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -154,7 +153,7 @@ func ExampleURLHandler_FindAll() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
+	h := NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 
 	fullURL1 := dto.URLBatchRequest{
 		CorrelationID: "2d5d144a-f272-40d3-b3aa-d4b1b9da277c",
@@ -182,7 +181,7 @@ func ExampleURLHandler_FindAll() {
 	// Output: 200
 }
 
-func ExampleURLHandler_FindURL() {
+func ExampleURLShortener_FindURL() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -196,7 +195,7 @@ func ExampleURLHandler_FindURL() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
+	h := NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 
 	urlService.Add(context.Background(), "https://example.com", "localhost:8080", "token")
 
@@ -211,7 +210,7 @@ func ExampleURLHandler_FindURL() {
 	// Output: 307
 }
 
-func ExampleURLHandler_AddShorten() {
+func ExampleURLShortener_AddShorten() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -225,7 +224,7 @@ func ExampleURLHandler_AddShorten() {
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
+	h := NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 
 	requestBody := dto.URLRequest{URL: "https://example.com"}
 	body, _ := json.Marshal(requestBody)

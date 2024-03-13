@@ -20,8 +20,8 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	grpcapi "github.com/msmkdenis/yap-shortener/internal/api/grpc"
-	httpapi "github.com/msmkdenis/yap-shortener/internal/api/http"
+	"github.com/msmkdenis/yap-shortener/internal/api/grpchandlers"
+	"github.com/msmkdenis/yap-shortener/internal/api/httphandlers"
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/middleware"
 	pb "github.com/msmkdenis/yap-shortener/internal/proto"
@@ -53,7 +53,7 @@ func URLShortenerRun() {
 	e := echo.New()
 	echopprof.Wrap(e)
 	wgHTTP := &sync.WaitGroup{}
-	httpapi.NewURLHandler(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, wgHTTP)
+	httphandlers.NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, wgHTTP)
 
 	listener, err := net.Listen("tcp", cfg.GRPCServer)
 	if err != nil {
@@ -63,7 +63,7 @@ func URLShortenerRun() {
 		grpc.ChainUnaryInterceptor(jwtAuth.GRPCJWTAuth, jwtCheckerCreator.GRPCJWTCheckOrCreate),
 	)
 	wgGRPC := &sync.WaitGroup{}
-	pb.RegisterURLShortenerServer(serverGrpc, grpcapi.NewURLHandler(urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtManager, logger, wgGRPC))
+	pb.RegisterURLShortenerServer(serverGrpc, grpchandlers.NewURLShorten(urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtManager, logger, wgGRPC))
 	reflection.Register(serverGrpc)
 
 	httpServerCtx, httpServerStopCtx := context.WithCancel(context.Background())
@@ -115,7 +115,7 @@ func URLShortenerRun() {
 		}()
 
 		// Trigger graceful shutdown
-		logger.Info("Shutdown signal received, gracefully stopping http server")
+		logger.Info("Shutdown signal received, gracefully stopping httphandlers server")
 		if errShutdown := e.Shutdown(shutdownCtx); errShutdown != nil {
 			e.Logger.Fatal(errShutdown)
 		}
