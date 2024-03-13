@@ -31,7 +31,7 @@ var cfgExampleTest = &config.Config{
 	SecretKey:       "test",
 }
 
-func ExampleURLShortener_AddURL() {
+func ExampleURLShorten_AddURL() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -61,7 +61,7 @@ func ExampleURLShortener_AddURL() {
 	// 201
 }
 
-func ExampleURLShortener_FindAllURLByUserID() {
+func ExampleURLShorten_FindAllURLByUserID() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -92,7 +92,7 @@ func ExampleURLShortener_FindAllURLByUserID() {
 	// Output: 200
 }
 
-func ExampleURLShortener_AddBatch() {
+func ExampleURLShorten_AddBatch() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -139,7 +139,7 @@ func ExampleURLShortener_AddBatch() {
 	// 201
 }
 
-func ExampleURLShortener_FindAll() {
+func ExampleURLShorten_FindAll() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -181,7 +181,7 @@ func ExampleURLShortener_FindAll() {
 	// Output: 200
 }
 
-func ExampleURLShortener_FindURL() {
+func ExampleURLShorten_FindURL() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
@@ -210,7 +210,7 @@ func ExampleURLShortener_FindURL() {
 	// Output: 307
 }
 
-func ExampleURLShortener_AddShorten() {
+func ExampleURLShorten_AddShorten() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
