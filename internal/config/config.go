@@ -27,6 +27,8 @@ type jsonConfig struct {
 	SecretKey       string `json:"secret_key"`
 	TokenName       string `json:"token_name"`
 	EnableHTTPS     string `json:"enable_https"`
+	TrustedSubnet   string `json:"trusted_subnet"`
+	GRPCServer      string `json:"grpc_server"`
 }
 
 // Config represents the configuration for the application.
@@ -40,6 +42,8 @@ type Config struct {
 	TokenName       string
 	EnableHTTPS     string
 	ConfigFile      string
+	TrustedSubnet   string
+	GRPCServer      string
 }
 
 // NewConfig creates a new Config instance with default values and returns a pointer to it.
@@ -67,7 +71,7 @@ func NewConfig(logger *zap.Logger) *Config {
 // user=postgres password=postgres host=localhost database=yap-shortener sslmode=disable
 func (c *Config) parseFlags() {
 	var URLServer string
-	flag.StringVar(&URLServer, "a", ":8080", "Enter URLServer as ip_address:port Or use SERVER_ADDRESS env")
+	flag.StringVar(&URLServer, "a", "localhost:8080", "Enter URLServer as ip_address:port Or use SERVER_ADDRESS env")
 
 	var URLPrefix string
 	flag.StringVar(&URLPrefix, "b", "http://localhost:8080", "Enter URLPrefix as http://ip_address:port Or use BASE_URL env")
@@ -85,10 +89,16 @@ func (c *Config) parseFlags() {
 	flag.StringVar(&EnableHTTPS, "s", "false", "Enable HTTPS Or use ENABLE_HTTPS env")
 
 	var TokenName string
-	flag.StringVar(&TokenName, "t", "token", "Enter token name Or use TOKEN_NAME env")
+	flag.StringVar(&TokenName, "n", "token", "Enter token name Or use TOKEN_NAME env")
 
 	var ConfigFile string
 	flag.StringVar(&ConfigFile, "c", "", "Enter path to config file Or use CONFIG env")
+
+	var TrustedSubnet string
+	flag.StringVar(&TrustedSubnet, "t", "127.0.0.1/24", "Enter trusted subnet Or use TRUSTED_SUBNET env")
+
+	var GRPCServer string
+	flag.StringVar(&GRPCServer, "g", ":3300", "Enter gRPC server address Or use GRPC_SERVER env")
 
 	flag.Parse()
 
@@ -100,6 +110,8 @@ func (c *Config) parseFlags() {
 	c.EnableHTTPS = EnableHTTPS
 	c.TokenName = TokenName
 	c.ConfigFile = ConfigFile
+	c.TrustedSubnet = TrustedSubnet
+	c.GRPCServer = GRPCServer
 }
 
 func (c *Config) parseEnv() {
@@ -134,6 +146,14 @@ func (c *Config) parseEnv() {
 	if envConfigFile := os.Getenv("CONFIG"); envConfigFile != "" {
 		c.ConfigFile = envConfigFile
 	}
+
+	if envTrustedSubnet := os.Getenv("TRUSTED_SUBNET"); envTrustedSubnet != "" {
+		c.TrustedSubnet = envTrustedSubnet
+	}
+
+	if envGRPCServer := os.Getenv("GRPC_SERVER"); envGRPCServer != "" {
+		c.GRPCServer = envGRPCServer
+	}
 }
 
 func (c *Config) parseJSONConfig() error {
@@ -166,6 +186,14 @@ func (c *Config) parseJSONConfig() error {
 
 	if c.TokenName == "" {
 		c.TokenName = config.TokenName
+	}
+
+	if c.TrustedSubnet == "" {
+		c.TrustedSubnet = config.TrustedSubnet
+	}
+
+	if c.GRPCServer == "" {
+		c.GRPCServer = config.GRPCServer
 	}
 
 	return configFile.Close()

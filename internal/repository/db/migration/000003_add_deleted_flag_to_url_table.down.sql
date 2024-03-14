@@ -1,1 +1,0 @@
-alter table url_shortener.url drop column deleted_flag;

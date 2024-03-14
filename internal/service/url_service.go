@@ -23,6 +23,7 @@ type URLRepository interface {
 	SelectAllByUserID(ctx context.Context, userID string) ([]model.URL, error)
 	DeleteAll(ctx context.Context) error
 	DeleteURLByUserID(ctx context.Context, userID string, shortURLs string) error
+	SelectStats(ctx context.Context) (*model.URLStats, error)
 	Ping(ctx context.Context) error
 }
 
@@ -38,6 +39,20 @@ func NewURLService(repository URLRepository, logger *zap.Logger) *URLUseCase {
 		repository: repository,
 		logger:     logger,
 	}
+}
+
+// GetStats returns URL stats.
+func (u *URLUseCase) GetStats(ctx context.Context) (*dto.URLStats, error) {
+	stats, err := u.repository.SelectStats(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("%s %w", apperr.Caller(), err)
+	}
+
+	response := &dto.URLStats{
+		Urls:  stats.Urls,
+		Users: stats.Users,
+	}
+	return response, nil
 }
 
 // GetAllByUserID returns all URLs by user ID.

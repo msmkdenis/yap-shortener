@@ -1,4 +1,4 @@
-// Package client sends simple requests to the server.
+// Package benchclient sends simple requests to the server.
 package client
 
 import (
@@ -12,7 +12,7 @@ import (
 	"go.uber.org/zap"
 )
 
-// Config contains the configuration for the client.
+// Config contains the configuration for the benchclient.
 type Config struct {
 	Address string `env:"CLIENT_ADDRESS" envDefault:"0.0.0.0:6060"`
 }

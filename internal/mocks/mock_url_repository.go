@@ -151,3 +151,18 @@ func (mr *MockURLRepositoryMockRecorder) SelectByID(arg0, arg1 interface{}) *gom
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SelectByID", reflect.TypeOf((*MockURLRepository)(nil).SelectByID), arg0, arg1)
 }
+
+// SelectStats mocks base method.
+func (m *MockURLRepository) SelectStats(arg0 context.Context) (*model.URLStats, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SelectStats", arg0)
+	ret0, _ := ret[0].(*model.URLStats)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// SelectStats indicates an expected call of SelectStats.
+func (mr *MockURLRepositoryMockRecorder) SelectStats(arg0 interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SelectStats", reflect.TypeOf((*MockURLRepository)(nil).SelectStats), arg0)
+}

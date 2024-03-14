@@ -29,3 +29,9 @@ type URLBatchResponseByUserID struct {
 	OriginalURL string `json:"original_url,omitempty"`
 	DeletedFlag bool   `json:"deleted_flag,omitempty"`
 }
+
+// URLStats represents URL stats.
+type URLStats struct {
+	Urls  int
+	Users int
+}

@@ -1,13 +1,24 @@
 package middleware
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
+	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/metadata"
+	"google.golang.org/grpc/status"
 
 	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
+
+var jwtCheckerSkipMethods = map[string]struct{}{
+	"/proto.URLShortener/GetStats": {},
+}
+
+type TokenContextKey string
 
 // JWTCheckerCreator represents JWT checker creator middleware.
 type JWTCheckerCreator struct {
@@ -63,6 +74,62 @@ func (j *JWTCheckerCreator) JWTCheckOrCreate() echo.MiddlewareFunc {
 	}
 }
 
+// JWTCheckOrCreate checks token from gRPC metadata and sets userID in the context.
+// Otherwise creates new token and sets it in the context.
+func (j *JWTCheckerCreator) GRPCJWTCheckOrCreate(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
+	if _, ok := authMandatoryMethods[info.FullMethod]; ok {
+		return handler(ctx, req)
+	}
+
+	if _, ok := jwtCheckerSkipMethods[info.FullMethod]; ok {
+		return handler(ctx, req)
+	}
+
+	md, ok := metadata.FromIncomingContext(ctx)
+	if !ok {
+		return nil, status.Errorf(codes.InvalidArgument, "missing metadata")
+	}
+
+	c := md.Get(j.jwtManager.TokenName)
+	if len(c) < 1 {
+		j.logger.Info("token not found, creating new token")
+		ctx, err := j.setUserIDAndReturn(ctx, md)
+		if err != nil {
+			return nil, err
+		}
+		return handler(ctx, req)
+	}
+
+	userID, err := j.jwtManager.GetUserID(c[0])
+	if err != nil {
+		j.logger.Warn("unable to parse UserID, creating new token", zap.Error(err))
+		ctx, err = j.setUserIDAndReturn(ctx, md)
+		if err != nil {
+			return nil, err
+		}
+
+		return handler(ctx, req)
+	}
+
+	ctx = context.WithValue(ctx, UserIDContextKey("userID"), userID)
+	ctx = metadata.NewIncomingContext(ctx, md)
+	return handler(ctx, req)
+}
+
+func (j *JWTCheckerCreator) setUserIDAndReturn(ctx context.Context, md metadata.MD) (context.Context, error) {
+	cookie := j.makeCookie()
+	ctx = context.WithValue(ctx, TokenContextKey(j.jwtManager.TokenName), cookie.Value)
+	newUserID, err := j.jwtManager.GetUserID(cookie.Value)
+	if err != nil {
+		j.logger.Error("unable to parse UserID, while creating new token", zap.Error(err))
+		return nil, status.Errorf(codes.Internal, "unable to parse UserID, while creating new token")
+	}
+	ctx = context.WithValue(ctx, UserIDContextKey("userID"), newUserID)
+	md.Append(j.jwtManager.TokenName, cookie.Value)
+	ctx = metadata.NewIncomingContext(ctx, md)
+	return ctx, nil
+}
+
 func (j *JWTCheckerCreator) setCookieAndReturn(c echo.Context) string {
 	tokenString, err := j.jwtManager.BuildJWTString()
 	if err != nil {
@@ -75,4 +142,17 @@ func (j *JWTCheckerCreator) setCookieAndReturn(c echo.Context) string {
 	}
 	c.SetCookie(cookie)
 	return cookie.Value
+}
+
+func (j *JWTCheckerCreator) makeCookie() *http.Cookie {
+	tokenString, err := j.jwtManager.BuildJWTString()
+	if err != nil {
+		j.logger.Fatal("unable to create token", zap.Error(err))
+	}
+
+	cookie := &http.Cookie{
+		Name:  j.jwtManager.TokenName,
+		Value: tokenString,
+	}
+	return cookie
 }

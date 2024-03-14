@@ -28,7 +28,7 @@ func Decompress() echo.MiddlewareFunc {
 	}
 }
 
-// Compress returns a middleware function that compresses the response using compressor if the client supports it.
+// Compress returns a middleware function that compresses the response using compressor if the benchclient supports it.
 func Compress() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

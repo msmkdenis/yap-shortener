@@ -18,21 +18,23 @@ import (
 	"github.com/testcontainers/testcontainers-go/wait"
 	"go.uber.org/zap"
 
+	"github.com/msmkdenis/yap-shortener/internal/api/httphandlers"
 	"github.com/msmkdenis/yap-shortener/internal/config"
-	"github.com/msmkdenis/yap-shortener/internal/handlers"
+	"github.com/msmkdenis/yap-shortener/internal/middleware"
 	"github.com/msmkdenis/yap-shortener/internal/repository/db"
 	"github.com/msmkdenis/yap-shortener/internal/service"
 	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
 
 var cfgMock = &config.Config{
-	TokenName: "test",
-	SecretKey: "test",
+	TokenName:     "test",
+	SecretKey:     "test",
+	TrustedSubnet: "",
 }
 
 type IntegrationTestSuite struct {
 	suite.Suite
-	urlHandler    *handlers.URLHandler
+	urlHandler    *httphandlers.URLShorten
 	urlService    *service.URLUseCase
 	urlRepository *db.PostgresURLRepository
 	echo          *echo.Echo
@@ -58,13 +60,15 @@ func (s *IntegrationTestSuite) SetupTest() {
 
 	s.urlRepository = db.NewPostgresURLRepository(s.pool, logger)
 	jwtManager := jwtgen.InitJWTManager(cfgMock.TokenName, cfgMock.SecretKey, logger)
+	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
+	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
 	s.urlService = service.NewURLService(s.urlRepository, logger)
 	s.echo = echo.New()
-	s.endpoint, err = s.container.Endpoint(context.Background(), "http")
+	s.endpoint, err = s.container.Endpoint(context.Background(), "httphandlers")
 	if err != nil {
 		logger.Error("Unable to get endpoint", zap.Error(err))
 	}
-	s.urlHandler = handlers.NewURLHandler(s.echo, s.urlService, s.endpoint, jwtManager, logger, &sync.WaitGroup{})
+	s.urlHandler = httphandlers.NewURLShorten(s.echo, s.urlService, s.endpoint, cfgMock.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 }
 
 func (s *IntegrationTestSuite) TestAddURL() {

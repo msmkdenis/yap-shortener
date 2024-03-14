@@ -1,4 +1,4 @@
-package handlers
+package httphandlers
 
 import (
 	"context"
@@ -15,6 +15,7 @@ import (
 
 	"github.com/msmkdenis/yap-shortener/internal/config"
 	"github.com/msmkdenis/yap-shortener/internal/dto"
+	"github.com/msmkdenis/yap-shortener/internal/middleware"
 	"github.com/msmkdenis/yap-shortener/internal/repository/memory"
 	"github.com/msmkdenis/yap-shortener/internal/service"
 	"github.com/msmkdenis/yap-shortener/pkg/echopprof"
@@ -24,24 +25,27 @@ import (
 var cfgExampleTest = &config.Config{
 	URLServer:       "8080",
 	URLPrefix:       "http://localhost:8080",
+	TrustedSubnet:   "",
 	FileStoragePath: "/tmp/short-url-db-test.json",
 	TokenName:       "test",
 	SecretKey:       "test",
 }
 
-func ExampleURLHandler_AddURL() {
+func ExampleURLShorten_AddURL() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
 	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
+	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
 	repository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(repository, logger)
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	h := NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 
 	request := httptest.NewRequest(http.MethodPost, "http://localhost:8080/", strings.NewReader("https://example.com"))
 	w := httptest.NewRecorder()
@@ -57,19 +61,21 @@ func ExampleURLHandler_AddURL() {
 	// 201
 }
 
-func ExampleURLHandler_FindAllURLByUserID() {
+func ExampleURLShorten_FindAllURLByUserID() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
 	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
+	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
 	repository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(repository, logger)
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	h := NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 
 	request := httptest.NewRequest(http.MethodGet, "http://localhost:8080/api/user/urls", strings.NewReader(""))
 	w := httptest.NewRecorder()
@@ -86,19 +92,21 @@ func ExampleURLHandler_FindAllURLByUserID() {
 	// Output: 200
 }
 
-func ExampleURLHandler_AddBatch() {
+func ExampleURLShorten_AddBatch() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
 	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
+	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
 	repository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(repository, logger)
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	h := NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 
 	fullURL1 := dto.URLBatchRequest{
 		CorrelationID: "2d5d144a-f272-40d3-b3aa-d4b1b9da277c",
@@ -131,19 +139,21 @@ func ExampleURLHandler_AddBatch() {
 	// 201
 }
 
-func ExampleURLHandler_FindAll() {
+func ExampleURLShorten_FindAll() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
 	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
+	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
 	repository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(repository, logger)
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	h := NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 
 	fullURL1 := dto.URLBatchRequest{
 		CorrelationID: "2d5d144a-f272-40d3-b3aa-d4b1b9da277c",
@@ -171,19 +181,21 @@ func ExampleURLHandler_FindAll() {
 	// Output: 200
 }
 
-func ExampleURLHandler_FindURL() {
+func ExampleURLShorten_FindURL() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
 	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
+	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
 	repository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(repository, logger)
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	h := NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 
 	urlService.Add(context.Background(), "https://example.com", "localhost:8080", "token")
 
@@ -198,19 +210,21 @@ func ExampleURLHandler_FindURL() {
 	// Output: 307
 }
 
-func ExampleURLHandler_AddShorten() {
+func ExampleURLShorten_AddShorten() {
 	cfg := cfgExampleTest
 	logger, err := zap.NewProduction()
 	if err != nil {
 		log.Fatal("Unable to initialize zap logger", zap.Error(err))
 	}
 	jwtManager := jwtgen.InitJWTManager(cfg.TokenName, cfg.SecretKey, logger)
+	jwtCheckerCreator := middleware.InitJWTCheckerCreator(jwtManager, logger)
+	jwtAuth := middleware.InitJWTAuth(jwtManager, logger)
 	repository := memory.NewURLRepository(logger)
 	urlService := service.NewURLService(repository, logger)
 
 	e := echo.New()
 	echopprof.Wrap(e)
-	h := NewURLHandler(e, urlService, cfg.URLPrefix, jwtManager, logger, &sync.WaitGroup{})
+	h := NewURLShorten(e, urlService, cfg.URLPrefix, cfg.TrustedSubnet, jwtCheckerCreator, jwtAuth, logger, &sync.WaitGroup{})
 
 	requestBody := dto.URLRequest{URL: "https://example.com"}
 	body, _ := json.Marshal(requestBody)

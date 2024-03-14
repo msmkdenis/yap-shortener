@@ -10,3 +10,9 @@ type URL struct {
 	UserID        string `db:"user_id"`
 	DeletedFlag   bool   `db:"deleted_flag"`
 }
+
+// URLStats represents the URL stats.
+type URLStats struct {
+	Urls  int
+	Users int
+}
