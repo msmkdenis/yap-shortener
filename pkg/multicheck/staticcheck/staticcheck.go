@@ -117,7 +117,7 @@ import (
 
 // GetStaticCheckAnalyzers returns a list of staticcheck analyzers.
 func GetStaticCheckAnalyzers() []*analysis.Analyzer {
-	var response []*analysis.Analyzer
+	response := make([]*analysis.Analyzer, 0, len(staticcheck.Analyzers))
 
 	for _, check := range staticcheck.Analyzers {
 		response = append(response, check.Analyzer)

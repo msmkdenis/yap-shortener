@@ -76,7 +76,12 @@ func (r *PostgresURLRepository) DeleteURLByUserID(ctx context.Context, userID st
 	if err != nil {
 		return apperr.NewValueError("unable to start transaction", apperr.Caller(), err)
 	}
-	defer tx.Rollback(ctx)
+
+	defer func() {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			r.logger.Error("unable to rollback transaction", zap.Error(errRollback))
+		}
+	}()
 
 	block, err := tx.Prepare(ctx, "block", blockURLsByUserIDAndURLsIDs)
 	if err != nil {
@@ -203,7 +208,12 @@ func (r *PostgresURLRepository) InsertAllOrUpdate(ctx context.Context, urls []mo
 	if err != nil {
 		return nil, apperr.NewValueError("unable to start transaction", apperr.Caller(), err)
 	}
-	defer tx.Rollback(ctx)
+
+	defer func() {
+		if errRollback := tx.Rollback(ctx); errRollback != nil {
+			r.logger.Error("unable to rollback transaction", zap.Error(errRollback))
+		}
+	}()
 
 	rows := make([][]interface{}, len(urls))
 	for i, url := range urls {

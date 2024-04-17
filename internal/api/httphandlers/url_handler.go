@@ -24,6 +24,12 @@ import (
 	"github.com/msmkdenis/yap-shortener/pkg/workerpool"
 )
 
+const (
+	ContentTypeJSON         = "application/json"
+	MsgInvalidContentType   = "Content-Type header is not application/json"
+	MsgUnsupportedMediaType = "StatusUnsupportedMediaType: "
+)
+
 // URLShorten represents URL handler struct.
 type URLShorten struct {
 	urlService    URLShortenerService
@@ -138,9 +144,9 @@ func (h *URLShorten) GetStats(c echo.Context) error {
 // DeleteAllURLsByUserID deletes all URLs associated with a user ID.
 func (h *URLShorten) DeleteAllURLsByUserID(c echo.Context) error {
 	header := c.Request().Header.Get("Content-Type")
-	if header != "application/json" {
-		msg := "Content-Type header is not application/json"
-		h.logger.Error("StatusUnsupportedMediaType: " + msg)
+	if header != ContentTypeJSON {
+		msg := MsgInvalidContentType
+		h.logger.Error(MsgUnsupportedMediaType + msg)
 		return c.String(http.StatusUnsupportedMediaType, msg)
 	}
 
@@ -184,9 +190,9 @@ func (h *URLShorten) DeleteAllURLsByUserID(c echo.Context) error {
 // AddBatch handles the addition of a batch of URLs.
 func (h *URLShorten) AddBatch(c echo.Context) error {
 	header := c.Request().Header.Get("Content-Type")
-	if header != "application/json" {
-		msg := "Content-Type header is not application/json"
-		h.logger.Error("StatusUnsupportedMediaType: " + msg)
+	if header != ContentTypeJSON {
+		msg := MsgInvalidContentType
+		h.logger.Error(MsgUnsupportedMediaType + msg)
 		return c.String(http.StatusUnsupportedMediaType, msg)
 	}
 
@@ -221,9 +227,9 @@ func (h *URLShorten) AddBatch(c echo.Context) error {
 // AddShorten handles the addition of a single URL (got as json).
 func (h *URLShorten) AddShorten(c echo.Context) error {
 	header := c.Request().Header.Get("Content-Type")
-	if header != "application/json" {
-		msg := "Content-Type header is not application/json"
-		h.logger.Error("StatusUnsupportedMediaType: " + msg)
+	if header != ContentTypeJSON {
+		msg := MsgInvalidContentType
+		h.logger.Error(MsgUnsupportedMediaType + msg)
 		return c.String(http.StatusUnsupportedMediaType, msg)
 	}
 

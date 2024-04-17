@@ -93,11 +93,11 @@ func (j *JWTCheckerCreator) GRPCJWTCheckOrCreate(ctx context.Context, req interf
 	c := md.Get(j.jwtManager.TokenName)
 	if len(c) < 1 {
 		j.logger.Info("token not found, creating new token")
-		ctx, err := j.setUserIDAndReturn(ctx, md)
+		ctxWithID, err := j.setUserIDAndReturn(ctx, md)
 		if err != nil {
 			return nil, err
 		}
-		return handler(ctx, req)
+		return handler(ctxWithID, req)
 	}
 
 	userID, err := j.jwtManager.GetUserID(c[0])

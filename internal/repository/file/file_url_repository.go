@@ -299,7 +299,7 @@ func (r *URLRepository) InsertAllOrUpdate(ctx context.Context, urls []model.URL)
 
 	// Read all urls from file, update with new urls to be saved, store urls to save (with updated ones) in urlsToSave slice
 	decoder := json.NewDecoder(file)
-	var urlsToSave []model.URL
+	var urlsToSave []model.URL //nolint: prealloc
 	for {
 		var existingURL model.URL
 		err := decoder.Decode(&existingURL)

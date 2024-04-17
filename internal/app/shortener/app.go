@@ -69,22 +69,27 @@ func URLShortenerRun() {
 	httpServerCtx, httpServerStopCtx := context.WithCancel(context.Background())
 	grpcServerCtx, grpcServerStopCtx := context.WithCancel(context.Background())
 
+	// Канал для сигналов
 	quitSignal := make(chan os.Signal, 1)
 	signal.Notify(quitSignal, syscall.SIGHUP, syscall.SIGINT, syscall.SIGTERM, syscall.SIGQUIT)
 
 	quit := make(chan struct{})
 	go func() {
+		// Получили сигнал
 		<-quitSignal
+		// Закрыли сигнальный канал
 		close(quit)
 	}()
 
+	// Запустили сервер gRPC
 	go func() {
 		logger.Info(fmt.Sprintf("gRPC server starting on port %s", cfg.GRPCServer))
-		if err := serverGrpc.Serve(listener); err != nil {
-			logger.Fatal("Unable to start gRPC server", zap.Error(err))
+		if errGRPC := serverGrpc.Serve(listener); errGRPC != nil {
+			logger.Fatal("Unable to start gRPC server", zap.Error(errGRPC))
 		}
 	}()
 
+	// Запустили сервер HTTP
 	go func() {
 		if cfg.EnableHTTPS == "true" {
 			e.AutoTLSManager.Cache = autocert.DirCache("cache-dir")
@@ -100,7 +105,9 @@ func URLShortenerRun() {
 		}
 	}()
 
+	// Graceful shutdown ПКЗС
 	go func() {
+		// Слушаем сигнальный канал, при закрытии код идет дальше
 		<-quit
 
 		// Shutdown signal with grace period of 10 seconds
