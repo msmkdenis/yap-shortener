@@ -25,6 +25,8 @@ import (
 	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
 
+const URL = "http://localhost:8080"
+
 var cfgMock = &config.Config{
 	URLServer:       "8080",
 	URLPrefix:       "http://localhost:8080",
@@ -494,7 +496,7 @@ func (s *URLHandlerTestSuite) TestAddShorten_WrongMediaType() {
 }
 
 func (s *URLHandlerTestSuite) TestAddShorten_InternalServerError() {
-	requestBody := dto.URLRequest{URL: "https://example.com"}
+	requestBody := dto.URLRequest{URL: URL}
 	respErr := errors.New("internal server error")
 
 	testCases := []struct {
@@ -538,8 +540,8 @@ func (s *URLHandlerTestSuite) TestAddShorten_InternalServerError() {
 }
 
 func (s *URLHandlerTestSuite) TestAddShorten_Success() {
-	requestBody := dto.URLRequest{URL: "https://example.com"}
-	url := &model.URL{Original: "https://example.com", Shortened: "test"}
+	requestBody := dto.URLRequest{URL: URL}
+	url := &model.URL{Original: URL, Shortened: "test"}
 	responseBody := dto.URLResponse{Result: url.Shortened}
 
 	testCases := []struct {
@@ -586,8 +588,8 @@ func (s *URLHandlerTestSuite) TestAddShorten_Success() {
 }
 
 func (s *URLHandlerTestSuite) TestAddShorten_UrlAlreadyExists() {
-	requestBody := dto.URLRequest{URL: "https://example.com"}
-	url := &model.URL{Original: "https://example.com", Shortened: "test"}
+	requestBody := dto.URLRequest{URL: URL}
+	url := &model.URL{Original: URL, Shortened: "test"}
 	responseBody := dto.URLResponse{Result: url.Shortened}
 	mockErr := urlErr.ErrURLAlreadyExists
 
@@ -673,7 +675,7 @@ func (s *URLHandlerTestSuite) TestAddURL_EmptyRequest() {
 }
 
 func (s *URLHandlerTestSuite) TestAddURL_InternalServerError() {
-	requestBody := "https://example.com"
+	requestBody := URL
 	respErr := errors.New("internal server error")
 
 	testCases := []struct {
@@ -715,8 +717,8 @@ func (s *URLHandlerTestSuite) TestAddURL_InternalServerError() {
 }
 
 func (s *URLHandlerTestSuite) TestAddURL_Success() {
-	requestBody := "https://example.com"
-	url := &model.URL{Original: "https://example.com", Shortened: "test"}
+	requestBody := URL
+	url := &model.URL{Original: URL, Shortened: "test"}
 	responseBody := url.Shortened
 
 	testCases := []struct {
@@ -758,8 +760,8 @@ func (s *URLHandlerTestSuite) TestAddURL_Success() {
 }
 
 func (s *URLHandlerTestSuite) TestAddURL_UrlAlreadyExists() {
-	requestBody := "https://example.com"
-	url := &model.URL{Original: "https://example.com", Shortened: "test"}
+	requestBody := URL
+	url := &model.URL{Original: URL, Shortened: "test"}
 	responseBody := url.Shortened
 	mockErr := urlErr.ErrURLAlreadyExists
 
@@ -876,7 +878,7 @@ func (s *URLHandlerTestSuite) TestClearALL_Success() {
 }
 
 func (s *URLHandlerTestSuite) TestFindURL_Success() {
-	url := &model.URL{Original: "https://example.com", Shortened: "test"}
+	url := &model.URL{Original: URL, Shortened: "test"}
 	responseBody := url.Original
 
 	testCases := []struct {

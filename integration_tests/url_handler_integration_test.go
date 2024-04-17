@@ -13,6 +13,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/gommon/log"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
 	"github.com/testcontainers/testcontainers-go"
 	"github.com/testcontainers/testcontainers-go/wait"
@@ -25,6 +26,8 @@ import (
 	"github.com/msmkdenis/yap-shortener/internal/service"
 	"github.com/msmkdenis/yap-shortener/pkg/jwtgen"
 )
+
+const BODY = "https://example.com"
 
 var cfgMock = &config.Config{
 	TokenName:     "test",
@@ -72,7 +75,7 @@ func (s *IntegrationTestSuite) SetupTest() {
 }
 
 func (s *IntegrationTestSuite) TestAddURL() {
-	body := "https://example.com"
+	body := BODY
 
 	testCases := []struct {
 		name         string
@@ -90,7 +93,7 @@ func (s *IntegrationTestSuite) TestAddURL() {
 			path:         s.endpoint + "/",
 			body:         body,
 			expectedCode: http.StatusCreated,
-			expectedBody: []byte(fmt.Sprintf("%s/Yzk4NGQ", s.endpoint)),
+			expectedBody: []byte(fmt.Sprintf("%s/Yzk4NGQwNmFhZmJlY2Y2YmM1NTU2OWY5NjQxNDhlYTM=", s.endpoint)),
 		},
 		{
 			name:         "Empty request - 400",
@@ -106,7 +109,7 @@ func (s *IntegrationTestSuite) TestAddURL() {
 			path:         s.endpoint + "/",
 			body:         body,
 			expectedCode: http.StatusConflict,
-			expectedBody: []byte(fmt.Sprintf("%s/Yzk4NGQ", s.endpoint)),
+			expectedBody: []byte(fmt.Sprintf("%s/Yzk4NGQwNmFhZmJlY2Y2YmM1NTU2OWY5NjQxNDhlYTM=", s.endpoint)),
 		},
 	}
 	for _, tc := range testCases {
@@ -125,7 +128,7 @@ func (s *IntegrationTestSuite) TestAddURL() {
 }
 
 func (s *IntegrationTestSuite) TestAddURL_Context() {
-	body := "https://example.com"
+	body := BODY
 
 	testCases := []struct {
 		name         string
@@ -171,7 +174,8 @@ func (s *IntegrationTestSuite) TestAddURL_Context() {
 }
 
 func (s *IntegrationTestSuite) TearDownTest() {
-	defer s.container.Terminate(context.Background())
+	err := s.container.Terminate(context.Background())
+	require.NoError(s.T(), err)
 }
 
 func setupTestDatabase() (testcontainers.Container, *db.PostgresPool, error) {

@@ -12,5 +12,5 @@ func GenerateMD5Hash(text string) string {
 	fullHash := hex.EncodeToString(hash[:])
 	encoded := base64.StdEncoding.EncodeToString([]byte(fullHash))
 
-	return encoded[:7]
+	return encoded
 }
